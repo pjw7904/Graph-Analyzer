@@ -1,0 +1,287 @@
+<rspec xmlns="http://www.geni.net/resources/rspec/3" xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" xmlns:tour="http://www.protogeni.net/resources/rspec/ext/apt-tour/1" xmlns:jacks="http://www.protogeni.net/resources/rspec/ext/jacks/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3    http://www.geni.net/resources/rspec/3/request.xsd" type="request">
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="node-0" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7727" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/default.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26015" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26015" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26015" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26015" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-3" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7738" mac_address="02c74d2048da">
+      <ip address="10.10.2.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-21" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7765" mac_address="02cb46abc579">
+      <ip address="10.10.11.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-23" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7768" mac_address="02313bb60ee6">
+      <ip address="10.10.12.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-21" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="node-0.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="node-1" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7728" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/default.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26016" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26016" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26016" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26016" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-1" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7735" mac_address="02c9f9846953">
+      <ip address="10.10.1.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-15" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7756" mac_address="029ee777e312">
+      <ip address="10.10.8.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-16" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7758" mac_address="024577ecb71d">
+      <ip address="10.10.9.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-20" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7764" mac_address="02322ff46a24">
+      <ip address="10.10.11.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-22" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="node-1.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="node-2" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7729" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/default.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26017" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26017" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26017" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26017" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-5" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7741" mac_address="02a11fa44dfd">
+      <ip address="10.10.3.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-13" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7753" mac_address="02fc67f8a2da">
+      <ip address="10.10.7.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-17" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7759" mac_address="0231b07abbee">
+      <ip address="10.10.9.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-19" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7762" mac_address="027c391e4d08">
+      <ip address="10.10.10.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-22" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7767" mac_address="02baa22a59e3">
+      <ip address="10.10.12.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-23" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="node-2.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="node-3" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7730" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/default.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26018" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26018" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26018" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26018" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-7" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7744" mac_address="02f7744a7a60">
+      <ip address="10.10.4.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-10" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7749" mac_address="0213cd0e16e9">
+      <ip address="10.10.6.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-14" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7755" mac_address="021a64a57cd2">
+      <ip address="10.10.8.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-18" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7761" mac_address="0296f60550a0">
+      <ip address="10.10.10.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-24" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="node-3.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="node-4" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7731" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/default.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26019" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26019" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26019" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26019" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-9" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7747" mac_address="0258f714354d">
+      <ip address="10.10.5.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-11" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7750" mac_address="0252ace41869">
+      <ip address="10.10.6.2" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <interface client_id="interface-12" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7752" mac_address="0280f689669d">
+      <ip address="10.10.7.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-25" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="node-4.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="endnode-0" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7722" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/server.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26010" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26010" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26010" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26010" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-2" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7737" mac_address="0237c8eacae1">
+      <ip address="10.10.2.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-16" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="endnode-0.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="endnode-1" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7723" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/server.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26011" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26011" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26011" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26011" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-0" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7734" mac_address="025b0f0d712f">
+      <ip address="10.10.1.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-17" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="endnode-1.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="endnode-2" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7724" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/server.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26012" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26012" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26012" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26012" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-4" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7740" mac_address="0204ba994115">
+      <ip address="10.10.3.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-18" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="endnode-2.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="endnode-3" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7725" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/server.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26013" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26013" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26013" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26013" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-6" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7743" mac_address="0201e9a99722">
+      <ip address="10.10.4.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-19" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="endnode-3.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <node xmlns:emulab="http://www.protogeni.net/resources/rspec/ext/emulab/1" client_id="endnode-4" component_manager_id="urn:publicid:IDN+instageni.iu.edu+authority+cm" component_id="urn:publicid:IDN+instageni.iu.edu+node+pc2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7726" exclusive="false">
+    <icon xmlns="http://www.protogeni.net/resources/rspec/ext/jacks/1" url="https://www.emulab.net/protogeni/jacks-stable/images/server.svg"/>
+    <sliver_type name="emulab-xen">
+      <disk_image name="urn:publicid:IDN+emulab.net+image+emulab-ops:UBUNTU18-64-STD"/>
+    </sliver_type>
+    <services>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26014" username="efgics"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26014" username="pjw7904"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26014" username="sr1632"/>
+      <login authentication="ssh-keys" hostname="pc2.instageni.iu.edu" port="26014" username="nxsvks"/>
+      <emulab:console server="pc2.instageni.iu.edu"/>
+    </services>
+    <interface client_id="interface-8" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7746" mac_address="02657bcf7d1f">
+      <ip address="10.10.5.1" type="ipv4" netmask="255.255.255.0"/>
+    </interface>
+    <emulab:vnode name="pcvm2-20" hardware_type="pcvm" disk_image="emulab-ops/UBUNTU18-64-STD:0"/>
+    <host name="endnode-4.Thesis-5Nodes.ch-geni-net.instageni.iu.edu"/>
+  </node>
+  <link client_id="link-0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7733">
+    <interface_ref client_id="interface-0" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7734"/>
+    <interface_ref client_id="interface-1" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7735"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-1" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7736">
+    <interface_ref client_id="interface-2" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7737"/>
+    <interface_ref client_id="interface-3" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7738"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-2" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7739">
+    <interface_ref client_id="interface-4" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7740"/>
+    <interface_ref client_id="interface-5" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7741"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-3" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7742">
+    <interface_ref client_id="interface-6" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7743"/>
+    <interface_ref client_id="interface-7" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7744"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-4" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7745">
+    <interface_ref client_id="interface-8" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7746"/>
+    <interface_ref client_id="interface-9" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7747"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-5" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7748">
+    <interface_ref client_id="interface-10" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7749"/>
+    <interface_ref client_id="interface-11" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7750"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-6" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7751">
+    <interface_ref client_id="interface-12" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7752"/>
+    <interface_ref client_id="interface-13" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7753"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-7" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7754">
+    <interface_ref client_id="interface-14" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7755"/>
+    <interface_ref client_id="interface-15" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7756"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-8" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7757">
+    <interface_ref client_id="interface-16" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7758"/>
+    <interface_ref client_id="interface-17" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7759"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-9" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7760">
+    <interface_ref client_id="interface-18" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7761"/>
+    <interface_ref client_id="interface-19" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7762"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-10" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7763">
+    <interface_ref client_id="interface-20" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7764"/>
+    <interface_ref client_id="interface-21" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7765"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <link client_id="link-11" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7766">
+    <interface_ref client_id="interface-22" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7767"/>
+    <interface_ref client_id="interface-23" component_id="urn:publicid:IDN+instageni.iu.edu+interface+pc2:lo0" sliver_id="urn:publicid:IDN+instageni.iu.edu+sliver+7768"/>
+    <component_manager name="urn:publicid:IDN+instageni.iu.edu+authority+cm"/>
+  </link>
+  <rs:site_info xmlns:rs="http://www.protogeni.net/resources/rspec/ext/site-info/1">
+    <rs:location country="" latitude="39.171561" longitude="-86.501293"/>
+  </rs:site_info>
+</rspec>
