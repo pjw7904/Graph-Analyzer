@@ -15,7 +15,7 @@ REV = -1
 
 def edgesToVerts(edges): # Updated
     allEdges = [element for item in edges for element in item.split('_')]
-    verts = list(allEdges)
+    verts = list(set(allEdges))
     verts.sort()
 
     return verts
@@ -24,9 +24,10 @@ def edgesToNbrs(edges):
     verts = edgesToVerts(edges)
     nbrs = {}
     for vert in verts:
-        tmp1 = [edge[1] for edge in edges if edge[0] == vert]
-        tmp2 = [edge[0] for edge in edges if edge[1] == vert]
+        tmp1 = [edge.split("_")[1] for edge in edges if edge.split("_")[0] == vert]
+        tmp2 = [edge.split("_")[0] for edge in edges if edge.split("_")[1] == vert]
         tmp = list(set(tmp1+tmp2))
+        tmp.sort()
         nbrs[vert] = tmp
     return nbrs
 
@@ -132,7 +133,7 @@ def getVids(verts,parents):
         next = parents[curr]
         while next:
             curr = next[FIRST]
-            vid.extend(curr)
+            vid.append(curr)
             next = parents[curr]
         vids[vert] = vid
     return vids
