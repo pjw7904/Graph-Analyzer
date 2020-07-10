@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from GENIutils import * # Custom library for GENI functions
+from tabulate import tabulate # External Python library (Anaconda provided) for printing formatted ASCII tables
 import networkx as nx # External Python library (Anaconda provided) for graph creation and analysis
 import numpy as np # External Python library (Anaconda provided) for all thinks linear algebra, arrays, matricies, etc and efficent memory usage compared to Py lists
 import matplotlib.pyplot as plt # # External Python library (Anaconda provided) for drawing graphs
@@ -7,13 +8,97 @@ import statistics
 import math
 
 def main():
-    userInput = input("GENI Addr Info (1) | Random Graph (2): ") # Get user input
+    userInput = input("GENI Addr Info (1) | Random Graph (2) | Custom Selections (3): ") # Get user input
+
+    # Create an empty graph so vertex and edge sets can be added by the user selection
+    G = nx.Graph()
 
     # If user picks 1, read and analyze a graph created in GENI
     if(userInput == "1"):
-        getGENINetworkInfo()
+        G = getGENINetworkInfo()
 
-    # If user picks 2, read and analyze 
+    # If user picks 2, analyze a selection of graphs that I or someone else think is interesting
+    elif(userInput == "2"):
+        G = interestingGraphs()
+
+    # Calculate the results based on the graph(s) chosen
+    results, betweennessCentrality, avgNeighborConnectivity = calculateMetricsResults(G)
+
+    # Print the results
+    print(tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f"))
+    print(tabulate(betweennessCentrality, headers=["Node", "Results"], numalign="right", floatfmt=".4f"))
+    print(tabulate(avgNeighborConnectivity, headers=["Degree", "Results"], numalign="right", floatfmt=".4f"))
+
+    # Output the curent graph in a pyplot window
+    #nx.draw(G, with_labels=True, font_weight='bold')
+    #plt.show()
+
+
+def calculateMetricsResults(G):
+    # Collect results for output
+    results     = []
+    BC_results  = []
+    ANC_results = []
+
+    # Get other graph-related information
+    numOfVerticies = G.number_of_nodes()
+    results.append(["Number of verticies", numOfVerticies])
+
+    numOfEdges = G.number_of_edges()
+    results.append(["Number of edges", numOfEdges])
+
+    connectionStatus = nx.is_connected(G)
+    results.append(["Is the graph connected (parsial mesh/A2TR)", connectionStatus])
+
+    nodeConnectivity = nx.node_connectivity(G)
+    results.append(["Node Connectivity", nodeConnectivity])
+
+    linkConnectivity = nx.edge_connectivity(G)
+    results.append(["Link Connectivity", linkConnectivity])
+
+    algebraicConnectivity = nx.algebraic_connectivity(G)
+    results.append(["Algebraic Connectivity", algebraicConnectivity])
+
+    graphDiameter = nx.diameter(G)
+    results.append(["Diameter", graphDiameter])
+
+    avgShortestPathLength = nx.average_shortest_path_length(G)
+    results.append(["Average Shortest Path Length", avgShortestPathLength])
+
+    assortativityCoefficient = nx.degree_pearson_correlation_coefficient(G)
+    results.append(["Assortativity Coefficient", assortativityCoefficient])
+
+    completeStatus = graphIsComplete(G)
+    results.append(["Is the graph complete (full mesh)", completeStatus])
+
+    numOfSpanningTrees = SpanningTreeCount(G)
+    results.append(["Number of Possible Spanning Trees", numOfSpanningTrees])
+
+    averageNodeDegree = graphDegreeAverage(G)
+    results.append(["Average Nodal Degree", averageNodeDegree])
+
+    heterogeneity = graphHeterogeneity(G)
+    results.append(["Heterogeneity", heterogeneity])
+
+    spectralRadius = graphSpectralRadius(G)
+    results.append(["Spectral Radius (largest eigenvalue)", spectralRadius])
+
+    symmetryRatio = graphSymmetryRatio(G)
+    results.append(["Symmetry Ratio", symmetryRatio])
+
+    averageClusteringCoeff   = nx.average_clustering(G) # The average clustering coeffient of the graph
+    results.append(["Clustering Coefficent (Graph Average)", averageClusteringCoeff])
+
+    betweennessCentrality = nx.betweenness_centrality(G)
+    for key, value in betweennessCentrality.items():
+        BC_results.append([key,value])
+
+    avgNeighborConnectivity = nx.average_degree_connectivity(G)
+    for key, value in avgNeighborConnectivity.items():
+        ANC_results.append([key,value])
+
+    return results, BC_results, ANC_results
+
 
 def getGENINetworkInfo():
     # Read the necessary configuration information from creds.cnf
@@ -40,57 +125,12 @@ def getGENINetworkInfo():
     G.add_nodes_from(V)
     G.add_edges_from(E)
 
-    # Get other graph-related information
-    numOfVerticies           = G.number_of_nodes()
-    numOfEdges               = G.number_of_edges()
-    connectionStatus         = nx.is_connected(G)
-    nodeConnectivity         = nx.node_connectivity(G)
-    linkConnectivity         = nx.edge_connectivity(G)
-    algebraicConnectivity    = nx.algebraic_connectivity(G)
-    graphDiameter            = nx.diameter(G)
-    betweennessCentrality    = nx.betweenness_centrality(G)
-    avgShortestPathLength    = nx.average_shortest_path_length(G)
-    assortativityCoefficient = nx.degree_pearson_correlation_coefficient(G)
-    completeStatus           = graphIsComplete(G)
-    numOfSpanningTrees       = SpanningTreeCount(G)
-    averageNodeDegree        = graphDegreeAverage(G)
-    heterogeneity            = graphHeterogeneity(G)
-    spectralRadius           = graphSpectralRadius(G)
-    symmetryRatio            = graphSymmetryRatio(G)
-    averageClusteringCoeff   = nx.average_clustering(G) # The average clustering coeffient of the graph
-    avgNeighborConnectivity  = nx.average_degree_connectivity(G)
-
-    # Print current graph info
-    print("Is the graph connected (parsial mesh/A2TR)?: {conn}".format(conn=connectionStatus))
-    print("Is the graph complete (full mesh)?: {comp}".format(comp=completeStatus))
-    print("Number of verticies: {verts}".format(verts=numOfVerticies))
-    print("Number of edges: {edges}".format(edges=numOfEdges))
-    print("Average Nodal Degree: {avgDegree}".format(avgDegree=averageNodeDegree))
-    print("Node Connectivity: {NC}".format(NC=nodeConnectivity))
-    print("Link Connectivity: {LC}".format(LC=linkConnectivity))
-    print("Heterogeneity: {hgny:.4f}".format(hgny=heterogeneity))
-    print("Symmetry Ratio: {SYMR:.4f}".format(SYMR=symmetryRatio))
-    print("Diameter: {DMR}".format(DMR=graphDiameter))
-    print("Average Shortest Path Length: {ASPL:.4f}".format(ASPL=avgShortestPathLength))
-    print("Assortativity Coefficient: {AC:.4f}".format(AC=assortativityCoefficient))
-    print("Algebraic Connectivity: {AC:0.4f}".format(AC=algebraicConnectivity))
-    print("Number of Possible Spanning Trees: {STs:.2f}".format(STs=numOfSpanningTrees))
-    print("Spectral Radius (largest eigenvalue): {SR:.4f}".format(SR=spectralRadius))
-    print("Clustering Coefficent (Graph Average): {COFF:.4f}".format(COFF=averageClusteringCoeff))
-    print("\nBetweenness Centrality:")
-    for key, value in betweennessCentrality.items():
-        print("{key}: {value:.4f}".format(key=key,value=value))
-    print("\nAverage Neighbor Connectivity:")
-    for key, value in avgNeighborConnectivity.items():
-        print("Degree {key}: {value:.4f}".format(key=key,value=value))
+    return G
 
 
-    # Output the curent graph in a pyplot window
-    #nx.draw(G, with_labels=True, font_weight='bold')
-    #plt.show()
+def interestingGraphs():
 
     return
-
 
 # Kirchhoff's matrix tree theorem is implemented to count the number of spanning trees
 def SpanningTreeCount(G):
