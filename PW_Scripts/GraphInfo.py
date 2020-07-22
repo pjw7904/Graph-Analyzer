@@ -1,16 +1,20 @@
 #!/usr/bin/env python
-from GENIutils import * # Custom library for GENI functions
-from tabulate import tabulate # External Python library (Anaconda provided) for printing formatted ASCII tables
-import networkx as nx # External Python library (Anaconda provided) for graph creation and analysis
-import numpy as np # External Python library (Anaconda provided) for all thinks linear algebra, arrays, matricies, etc and efficent memory usage compared to Py lists
-import matplotlib.pyplot as plt # # External Python library (Anaconda provided) for drawing graphs
-import statistics
-import math
+from GENIutils import *         # Custom library for GENI functions
+from tabulate  import tabulate  # External Python library (Anaconda provided) for printing formatted ASCII tables
+import networkx          as nx  # External Python library (Anaconda provided) for graph creation and analysis
+import numpy             as np  # External Python library (Anaconda provided) for all thinks linear algebra, matricies, etc and efficent memory usage compared to Py lists
+import matplotlib.pyplot as plt # External Python library (Anaconda provided) for drawing graphs
+import statistics               # Python Standard Library for calculating mathematical statistics of numeric (Real-valued) data
+import math                     # Python Standard Library for access to the mathematical functions defined by the C standard.
 
 def main():
     userInput = input("GENI Addr Info (1) | Random Graph (2) | Custom Selections (3): ") # Get user input
 
-    # Create an empty graph so vertex and edge sets can be added by the user selection
+    #######
+    # NetworkX Graph:
+    # |Type       | Self-Loops | Parallel Edges|
+    # |undirected | No         | No            |
+    #######
     G = nx.Graph()
 
     # If user picks 1, read and analyze a graph created in GENI
@@ -19,19 +23,28 @@ def main():
 
     # If user picks 2, analyze a selection of graphs that I or someone else think is interesting
     elif(userInput == "2"):
-        G = interestingGraphs()
+        # TBA once sturcture is fully formed
+        print("TBA")
 
-    # Calculate the results based on the graph(s) chosen
-    results, betweennessCentrality, avgNeighborConnectivity = calculateMetricsResults(G)
+    # If user picks 3, read and analyze a graph from a graph-supported file type
+    elif(userInput == "3"):
+        # TBA once sturcture is fully formed
+        print("TBA")
 
-    # Print the results
+    # Calculate metric results based on the appropriate graph theory algorithms included
+    results,betweennessCentrality,avgNeighborConnectivity = calculateMetricsResults(G)
+
+    # Use Tabulate to print results in a clean table format
     print(tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f"))
     print(tabulate(betweennessCentrality, headers=["Node", "Results"], numalign="right", floatfmt=".4f"))
     print(tabulate(avgNeighborConnectivity, headers=["Degree", "Results"], numalign="right", floatfmt=".4f"))
 
-    # Output the curent graph in a pyplot window
-    #nx.draw(G, with_labels=True, font_weight='bold')
-    #plt.show()
+    # Draw a picture of the graph and present it to the user in a seperate GUI window
+    nx.draw(G, with_labels=True, font_weight='bold')
+    plt.show()
+
+    # End of script
+    return
 
 
 def calculateMetricsResults(G):
@@ -86,7 +99,8 @@ def calculateMetricsResults(G):
     symmetryRatio = graphSymmetryRatio(G)
     results.append(["Symmetry Ratio", symmetryRatio])
 
-    averageClusteringCoeff   = nx.average_clustering(G) # The average clustering coeffient of the graph
+    #TODO: Based on the paper, this needs to switch to being the transitivity function, not average_clustering
+    averageClusteringCoeff   = nx.average_clustering(G)
     results.append(["Clustering Coefficent (Graph Average)", averageClusteringCoeff])
 
     betweennessCentrality = nx.betweenness_centrality(G)
@@ -126,11 +140,6 @@ def getGENINetworkInfo():
     G.add_edges_from(E)
 
     return G
-
-
-def interestingGraphs():
-
-    return
 
 # Kirchhoff's matrix tree theorem is implemented to count the number of spanning trees
 def SpanningTreeCount(G):
