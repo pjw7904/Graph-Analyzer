@@ -148,3 +148,7 @@ dmypy.json
 .pytype/
 
 # End of https://www.toptal.com/developers/gitignore/api/jupyternotebooks,python
+
+### Custom Stuff ###
+AnalysisScratchPad.txt
+creds.cnf
