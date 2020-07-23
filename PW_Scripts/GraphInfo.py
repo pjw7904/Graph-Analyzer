@@ -47,12 +47,19 @@ def main():
     if(args.GetVIDs):
         MT_root = args.GetVIDs # The root of the meshed tree
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
-        MT_VIDs_Utils.addInterfaceNums(G_MT)
-        MT_VIDs_Utils.createMeshedTreeTable(G_MT)
-        print(G_MT.nodes["node-1"])
-        print(G_MT.edges.data())
-        #print(G_MT["node-0"]["node-1"]['intNum']) # prints 2
 
+        MT_VIDs_Utils.createMeshedTreeTable(G_MT)
+        MT_VIDs_Utils.addInterfaceNums(G_MT)
+
+        paths = nx.all_simple_paths(G_MT, source=MT_root, target="node-3")
+        for path in map(nx.utils.pairwise, paths):
+            VID = "1"
+            singlePath = list(path)
+            print(singlePath)
+            for eachThing in singlePath:
+                print(eachThing)
+                VID += "." + G_MT[eachThing[0]][eachThing[1]]['intNum']
+            print("VID = {0}".format(VID))
 
     # End of script
     return

@@ -17,7 +17,7 @@ def addInterfaceNums(G):
         intNum = 1
 
         for edges in nodeEdges:
-            G[edges[0]][edges[1]]['intNum'] = intNum
+            G[edges[0]][edges[1]]['intNum'] = str(intNum)
             intNum += 1
 
     return
