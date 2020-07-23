@@ -21,3 +21,23 @@ def addInterfaceNums(G):
             intNum += 1
 
     return
+
+
+def generatePossibleVIDs(network, MT_root, node):
+    allPossibleVIDs = []
+    rootVID = "1" # Eventually, this can become a parameter that can be changed with multiple roots
+
+    paths = nx.all_simple_paths(network, source=MT_root, target=node)
+
+    for path in map(nx.utils.pairwise, paths):
+        VID = rootVID
+        switchedPath = list(path)
+
+        for hop in switchedPath:
+            egressNode  = hop[0]
+            ingressNode = hop[1]
+            VID += "." + network[egressNode][ingressNode]['intNum']
+
+        allPossibleVIDs.append(VID)
+
+    return allPossibleVIDs

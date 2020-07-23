@@ -51,15 +51,11 @@ def main():
         MT_VIDs_Utils.createMeshedTreeTable(G_MT)
         MT_VIDs_Utils.addInterfaceNums(G_MT)
 
-        paths = nx.all_simple_paths(G_MT, source=MT_root, target="node-3")
-        for path in map(nx.utils.pairwise, paths):
-            VID = "1"
-            singlePath = list(path)
-            print(singlePath)
-            for eachThing in singlePath:
-                print(eachThing)
-                VID += "." + G_MT[eachThing[0]][eachThing[1]]['intNum']
-            print("VID = {0}".format(VID))
+        # Generating the possible VIDs from one example node
+        possibleVIDs = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, "node-3")
+
+        for VIDs in possibleVIDs:
+            print(VIDs)
 
     # End of script
     return
