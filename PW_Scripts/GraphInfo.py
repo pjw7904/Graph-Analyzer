@@ -6,42 +6,53 @@ import numpy             as np  # External Python library (Anaconda provided) fo
 import matplotlib.pyplot as plt # External Python library (Anaconda provided) for drawing graphs
 import statistics               # Python Standard Library for calculating mathematical statistics of numeric (Real-valued) data
 import math                     # Python Standard Library for access to the mathematical functions defined by the C standard.
+import argparse
+import MT_VIDs_Utils
 
 def main():
-    userInput = input("GENI Addr Info (1) | Random Graph (2) | Custom Selections (3): ") # Get user input
+    # ArgumentParser object to read in command line arguments
+    argParser = argparse.ArgumentParser(description="Graph Theory Analysis Script")
+
+    argParser.add_argument("-s", "--source") # The source of the graph
+    argParser.add_argument("--GetVIDs")      # VID-Based Meshed Tree rooted at the inputted vertex
+    argParser.add_argument("--ShowPic")
+
+    # Parse the arguments
+    args = argParser.parse_args()
+
 
     #######
     # NetworkX Graph:
     # |Type       | Self-Loops | Parallel Edges|
-    # |undirected | No         | No            |
+    # |Undirected | No         | No            |
     #######
     G = nx.Graph()
 
     # If user picks 1, read and analyze a graph created in GENI
-    if(userInput == "1"):
+    if(args.source == "RSPEC"):
         G = getGENINetworkInfo()
 
-    # If user picks 2, analyze a selection of graphs that I or someone else think is interesting
-    elif(userInput == "2"):
-        # TBA once sturcture is fully formed
-        print("TBA")
+        # Calculate metric results based on the appropriate graph theory algorithms included
+        results,betweennessCentrality,avgNeighborConnectivity = calculateMetricsResults(G)
 
-    # If user picks 3, read and analyze a graph from a graph-supported file type
-    elif(userInput == "3"):
-        # TBA once sturcture is fully formed
-        print("TBA")
+        # Use Tabulate to print results in a clean table format
+        print(tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f"))
+        print(tabulate(betweennessCentrality, headers=["Node", "Results"], numalign="right", floatfmt=".4f"))
+        print(tabulate(avgNeighborConnectivity, headers=["Degree", "Results"], numalign="right", floatfmt=".4f"))
 
-    # Calculate metric results based on the appropriate graph theory algorithms included
-    results,betweennessCentrality,avgNeighborConnectivity = calculateMetricsResults(G)
+        # Draw a picture of the graph and present it to the user in a seperate GUI window
+        #nx.draw(G, with_labels=True, font_weight='bold')
+        #plt.show()
 
-    # Use Tabulate to print results in a clean table format
-    print(tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f"))
-    print(tabulate(betweennessCentrality, headers=["Node", "Results"], numalign="right", floatfmt=".4f"))
-    print(tabulate(avgNeighborConnectivity, headers=["Degree", "Results"], numalign="right", floatfmt=".4f"))
+    if(args.GetVIDs):
+        MT_root = args.GetVIDs # The root of the meshed tree
+        G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
+        MT_VIDs_Utils.addInterfaceNums(G_MT)
+        MT_VIDs_Utils.createMeshedTreeTable(G_MT)
+        print(G_MT.nodes["node-1"])
+        print(G_MT.edges.data())
+        #print(G_MT["node-0"]["node-1"]['intNum']) # prints 2
 
-    # Draw a picture of the graph and present it to the user in a seperate GUI window
-    nx.draw(G, with_labels=True, font_weight='bold')
-    plt.show()
 
     # End of script
     return
