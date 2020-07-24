@@ -6,7 +6,8 @@ import statistics
 import math
 
 def createMeshedTreeTable(G):
-    nx.set_node_attributes(G, [], 'VIDTable')
+    for node in G:
+        G.nodes[node]['VIDTable'] = []
 
     return
 
@@ -23,21 +24,29 @@ def addInterfaceNums(G):
     return
 
 
-def generatePossibleVIDs(network, MT_root, node):
+def generatePossibleVIDs(network, MT_root, node, startingVID=None):
     allPossibleVIDs = []
-    rootVID = "1" # Eventually, this can become a parameter that can be changed with multiple roots
+    rootVID = ""
 
-    paths = nx.all_simple_paths(network, source=MT_root, target=node)
+    if(startingVID):
+        rootVID = startingVID
+    else:
+        rootVID = "1"
 
-    for path in map(nx.utils.pairwise, paths):
-        VID = rootVID
-        switchedPath = list(path)
+    if(node != MT_root):
+        paths = nx.all_simple_paths(network, source=MT_root, target=node)
 
-        for hop in switchedPath:
-            egressNode  = hop[0]
-            ingressNode = hop[1]
-            VID += "." + network[egressNode][ingressNode]['intNum']
+        for path in map(nx.utils.pairwise, paths):
+            VID = rootVID
+            switchedPath = list(path)
 
-        allPossibleVIDs.append(VID)
+            for hop in switchedPath:
+                egressNode  = hop[0]
+                ingressNode = hop[1]
+                VID += "." + network[egressNode][ingressNode]['intNum']
+            allPossibleVIDs.append(VID)
+
+    else:
+        allPossibleVIDs.append(rootVID)
 
     return allPossibleVIDs

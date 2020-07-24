@@ -45,17 +45,19 @@ def main():
         #plt.show()
 
     if(args.GetVIDs):
-        MT_root = args.GetVIDs # The root of the meshed tree
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
+
+        MT_root = args.GetVIDs # The root of the meshed tree
+        possibleVIDs = []
 
         MT_VIDs_Utils.createMeshedTreeTable(G_MT)
         MT_VIDs_Utils.addInterfaceNums(G_MT)
 
-        # Generating the possible VIDs from one example node
-        possibleVIDs = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, "node-3")
-
-        for VIDs in possibleVIDs:
-            print(VIDs)
+        # Generating the possible VIDs from each non-root node
+        for currentNode in G_MT:
+            possibleVIDs = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode)
+            possibleVIDs.sort(key=len)
+            G_MT.nodes[currentNode]['VIDTable'].extend(possibleVIDs)
 
     # End of script
     return
