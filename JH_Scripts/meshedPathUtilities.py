@@ -26,7 +26,7 @@ def getEdgeChoice():
     edges.append("cd")
 
     edgeChoice['K4'] = edgesUpper(edges)
-    
+
 ###graph 1   K5   Star in Box   4-regular   v5, e10
     edges=[]
     edges.append("ab")
@@ -42,8 +42,8 @@ def getEdgeChoice():
     edges.append("da")
 
     edgeChoice['K5'] = edgesUpper(edges)
-    
-###graph 2   Peterson   3-regular   v10, e15    
+
+###graph 2   Peterson   3-regular   v10, e15
     edges=[]
     edges.append("ab")
     edges.append("bc")
@@ -63,9 +63,9 @@ def getEdgeChoice():
     edges.append("gi")
     edges.append("if")
 
-    edgeChoice['peterson'] = edgesUpper(edges)    
-    
-###graph 3   K6   5-regular   v6, e15    
+    edgeChoice['peterson'] = edgesUpper(edges)
+
+###graph 3   K6   5-regular   v6, e15
     edges=[]
     edges.append("ab")
     edges.append("bc")
@@ -86,8 +86,8 @@ def getEdgeChoice():
     edges.append("be")
     edges.append("cf")
 
-    edgeChoice['K6'] = edgesUpper(edges)    
-    
+    edgeChoice['K6'] = edgesUpper(edges)
+
 ###graph 4   Octahedron    4-regular   v6, e12
     edges=[]
     edges.append("ab")
@@ -252,7 +252,7 @@ def getEdgeChoice():
     edges.append("st")
     edges.append("sx")
     edges.append("tu")
-    
+
     edges.append("ux")
     edges.append("uy")
     edges.append("vy")
@@ -260,7 +260,7 @@ def getEdgeChoice():
     edges.append("xy")
 
     edgeChoice['S4'] = edgesUpper(edges)
-    
+
 ###graph 9   TestBed T16    2-connected     v16, e33
     edges=[]
     edges.append("ab")
@@ -268,37 +268,37 @@ def getEdgeChoice():
     edges.append("bc")
     edges.append("bd")
     edges.append("be")
-    
+
     edges.append("ce")
     edges.append("cf")
     edges.append("de")
     edges.append("dg")
     edges.append("dh")
-    
+
     edges.append("eh")
 #    edges.append("ei")  #2
 #    edges.append("ef")  #3
     edges.append("fi")
     edges.append("fj")
-    
+
     edges.append("gh")
     edges.append("gk")
 #    edges.append("hi")  #1
     edges.append("hk")
 #    edges.append("hl")  #2
-    
+
     edges.append("ij")
     edges.append("il")
     edges.append("im")
     edges.append("jm")
 #    edges.append("kl")  #3
-    
+
     edges.append("kn")
     edges.append("lm")
     edges.append("ln")
     edges.append("lp")
     edges.append("mp")
-    
+
     edges.append("np")
     edges.append("nq")
     edges.append("pq")
@@ -332,7 +332,7 @@ def getMeshedPaths(nbrs,root):
     pathBundles[root] = [root]
     sending = [root]
     sendingEvents = []
-    
+
     while sending:
         sendingEvents.append(len(sending))
         nextSending = []
@@ -355,7 +355,7 @@ def getMeshedPaths(nbrs,root):
             bndl = list(set(bndl).union(acyclics))
             bndl.sort()
             bndl.sort(key=len)
-            
+
             if len(bndl) < 3:
                 newBndl = bndl
             else:
@@ -375,7 +375,7 @@ def getPathEdges(path):
     p0 = path[:LAST]
     p1 = path[REST:]
     edges = [''.join(sorted([v0,v1])) for v0, v1 in zip(p0,p1)]
-    
+
     return set(edges)
 
 def trimBundle(bndl):
@@ -448,7 +448,7 @@ def getParentsValidity(verts,parents,root):
                         msg = 'Bailout limit exceeded.'
                         break
     return valid, msg
-    
+
 def disableVert(pathBundles,badVert):
     if badVert not in pathBundles:
         newBundles = {}
