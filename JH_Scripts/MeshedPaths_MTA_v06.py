@@ -73,4 +73,4 @@ print(valid)
 
 # In[16]:
 children = getChildren(verts,parents)
-print("Node children: "children)
+print("Node children: {0}".format(children))
