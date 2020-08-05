@@ -51,25 +51,26 @@ nbrs = graf.nbrs
 print("\nNeighbors: {0}".format(nbrs))
 
 # In[11]:
-mPaths = getMeshedPaths(nbrs,root)
-print("\nMeshed Paths: ".format(mPaths))
+mPaths = getMeshedPaths(nbrs, root)
+print("\nMeshed Paths:")
 
 # In[12]:
+# Used to actually print the paths, it's not printed in the above print statement
 null = [print(mPaths.pathBundles[vert]) for vert in verts]
 
 # In[13]:
 bndlSizes = [len(mPaths.pathBundles[vert]) for vert in verts]
 bndlSum = sum(bndlSizes)
-print('bundle sizes = ',bndlSizes)
-print('total paths  = ',bndlSum)
+print('\nbundle sizes = {0}'.format(bndlSizes))
+print('total paths  = {0}'.format(bndlSum))
 
 # In[14]:
-parents = getParents(verts,mPaths.pathBundles)
-print(parents)
+parents = getParents(verts, mPaths.pathBundles)
+print("Node parents: {0}".format(parents))
 
 # In[15]:
 valid = getParentsValidity(verts,parents,root)
-print(valid)
+print("Validation: {0}".format(valid))
 
 # In[16]:
 children = getChildren(verts,parents)

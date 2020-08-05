@@ -322,54 +322,62 @@ def getParents(verts,pathBundles):
             parents[vert] = ''
     return parents
 
+
+# The core function of computing path bundles for a given network
 def getMeshedPaths(nbrs,root):
-    verts = sorted(list(nbrs.keys()))
+    verts = sorted(list(nbrs.keys())) # Lexigraphically sorted list of nodes/vertices because each neighbor-dictionary key is a node/vertex.
+
+    # Dictonaries for the path bundles and a path bundle input queue.
     pathBundles = {}
     inBaskets = {}
-    for vert in verts:
+
+    for vert in verts: # for each node in the network
+        # Create a dictonary key for node with a value of an empty list
         pathBundles[vert] = []
-        inBaskets[vert] = []
-    pathBundles[root] = [root]
-    sending = [root]
-    sendingEvents = []
+        inBaskets[vert] = [] # A node's path bundle input queue
 
-    while sending:
-        sendingEvents.append(len(sending))
-        nextSending = []
-        receiving = []
+    pathBundles[root] = [root] # The root node will only ever have a path bundle of size 1 (itself).
+    sending = [root]           # A list with one entry to start: the root node. [The root node is the first node to send path bundle information to neighbors]
+    sendingEvents = []         # An empty list for sending events.
 
-        for vert in sending:
-            for nbr in nbrs[vert]:
-                inBaskets[nbr].append(pathBundles[vert])
-                receiving.extend(nbr)
+    while sending: # While there are node's that need to send path bundle updates. [While every node has not converged with its final path bundle]
+        sendingEvents.append(len(sending)) # Append the number of entries in the sending list to sendingEvents
+        nextSending = []                   # Clear the list that decides which node sends a path bundle update next.
+        receiving = []                     # Clear the list of nodes that receive a path bundle update based on the current sender.
 
-        receiving = list(set(receiving))
+        for vert in sending: # For each node that needs to send a path bundle update.
+            for nbr in nbrs[vert]:                       # For each neighbor the current node has, send the current node's path bundle.
+                inBaskets[nbr].append(pathBundles[vert]) # The neighbor receives the path bundle sent by the current node.
+                receiving.extend(nbr)                    # Note that the neighbor has received the path bundle
 
-        for vert in receiving:
-            acyclics = []
-            for bndl in inBaskets[vert]:
-                for path in bndl:
-                    if vert not in path:
-                        acyclics.append(path + vert)
-            bndl = copy.deepcopy(pathBundles[vert])
-            bndl = list(set(bndl).union(acyclics))
+        receiving = list(set(receiving)) # Remove all duplicate neighbors from the list due to multiple senders.
+
+        for vert in receiving:           # For each node that received a path bundle update from a sender.
+            acyclics = []                # List that will contain paths (not a cycle/network loop).
+            for bndl in inBaskets[vert]: # For each path bundle the receiving node obtained.
+                for path in bndl:        # For each path in the current bundle.
+                    if vert not in path: # If the node which received the path bundle is not in the current path.
+                        acyclics.append(path + vert) # Take the path and append the receiving node, which completes the path from the root to the receiver.
+            bndl = copy.deepcopy(pathBundles[vert])  # Get a copy of the receiving node's current path bundle
+            bndl = list(set(bndl).union(acyclics))   # Add the valid paths to the path bundle (perform a union of the current path bundle set and the new paths set).
             bndl.sort()
-            bndl.sort(key=len)
+            bndl.sort(key=len) # Sort the updated path bundle by the length of the path, meaning the shortest path is the first index of the list.
 
-            if len(bndl) < 3:
+            if len(bndl) < 3: # If the number of paths in the bundle is less than three.
                 newBndl = bndl
             else:
-                newBndl = trimBundle(bndl)
+                newBndl = trimBundle(bndl) # Trim the path bundle down to three entries.
 
-            chng = list(set(newBndl).difference(set(pathBundles[vert])))
-            if chng:
-                pathBundles[vert] = newBndl
-                nextSending.append(vert)
-            inBaskets[vert] = []
+            chng = list(set(newBndl).difference(set(pathBundles[vert]))) # A list of the new paths (if any) that the receiving node added to its path bundle (set difference).
+            if chng:                        # If there was a new path added to the receiving node's path bundle
+                pathBundles[vert] = newBndl # Designate the updated path bundle as the official path bundle of that node
+                nextSending.append(vert)    # Add node to the list of nodes which needs to send a path bundle update (because it has new paths).
+            inBaskets[vert] = [] # Received path bundle(s) have been processed, so they can be cleared from the node's input queue.
 
-        sending = nextSending
+        sending = nextSending # The node(s) which needs to send path bundle updates are marked as such.
 
     return MeshedPaths(verts,nbrs,root,pathBundles,sendingEvents)
+
 
 def getPathEdges(path):
     p0 = path[:LAST]
@@ -405,7 +413,7 @@ def getParentsValidity(verts,parents,root):
     msg = 'Parents build a spanning tree.'
     if root not in parents:
         valid = False
-        msg = 'Root must be in parents.keys.'
+        msg = 'Root must be in "parents.keys"'
     elif parents[root] != '':
         valid = False
         msg = 'Root parent must be the null string.'
