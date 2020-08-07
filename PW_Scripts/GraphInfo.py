@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from GENIutils import *         # Custom library for GENI functions
-from tabulate  import tabulate  # External Python library (Anaconda provided) for printing formatted ASCII tables
+from GENIutils   import *        # Custom library for GENI functions
+from tabulate    import tabulate # External Python library (Anaconda provided) for printing formatted ASCII tables
 import networkx          as nx  # External Python library (Anaconda provided) for graph creation and analysis
 import numpy             as np  # External Python library (Anaconda provided) for all thinks linear algebra, matricies, etc and efficent memory usage compared to Py lists
 import matplotlib.pyplot as plt # External Python library (Anaconda provided) for drawing graphs
@@ -48,16 +48,24 @@ def main():
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
 
         MT_root = args.GetVIDs # The root of the meshed tree
-        possibleVIDs = []
+
+        possibleVIDs = {}
+        PVID         = {}
 
         MT_VIDs_Utils.createMeshedTreeTable(G_MT)
         MT_VIDs_Utils.addInterfaceNums(G_MT)
 
         # Generating the possible VIDs from each non-root node
         for currentNode in G_MT:
-            possibleVIDs = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode)
-            possibleVIDs.sort(key=len)
-            G_MT.nodes[currentNode]['VIDTable'].extend(possibleVIDs)
+            possibleVIDs, PVID = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode)
+            G_MT.nodes[currentNode]['VIDTable'].update(possibleVIDs)
+            G_MT.nodes[currentNode]['PVID'].update(PVID)
+
+        PVIDColors = nx.get_node_attributes(G_MT, "PVID")
+        activeLinks = [list(PVIDColors[node].keys())[0] for node in G_MT.nodes if node != MT_root]
+        colorBroadcastTree = ['black' if e in activeLinks else 'white' for e in G_MT.edges]
+        nx.draw(G_MT, with_labels=True, edge_color=colorBroadcastTree, font_weight='bold', labels = PVIDColors)
+        plt.show()
 
     # End of script
     return
