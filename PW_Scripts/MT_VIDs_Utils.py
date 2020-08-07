@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from collections import defaultdict
+from operator    import itemgetter
 import networkx          as nx
 import numpy             as np
 import matplotlib.pyplot as plt
@@ -26,10 +27,11 @@ def addInterfaceNums(G):
     return
 
 
-def generatePossibleVIDs(network, MT_root, node, startingVID=None):
+def generatePossibleVIDs(network, MT_root, node, startingVID=None, numOfVIDs=None):
     allPossibleVIDs = defaultdict(list)
     finalPVID       = {}
-    ActiveInt       = None
+    activeInterface = None
+    finalVIDTable   = [] # Tuple for holding N number of VIDs
 
     rootVID = ""
     PVID    = ""
@@ -49,13 +51,22 @@ def generatePossibleVIDs(network, MT_root, node, startingVID=None):
             # Taking the root VID, adding the first deminiting period (ex: 1 + "." = 1.), and then adding the egress value of each hop in the path deliminted (list comprehension)
             VID = rootVID + "." + ".".join(["{egressPort}".format(egressPort=network[hop[0]][hop[1]]['intNum']) for hop in switchedPath])
 
-            allPossibleVIDs[finalHop].append(VID)
+            possibleVIDTableAddition = (finalHop, VID)
+            finalVIDTable.append(possibleVIDTableAddition)
 
-            if(len(VID) < len(PVID) or (len(VID) == len(PVID) and VID < PVID) or PVID == ""):
-                PVID      = VID
-                ActiveInt = finalHop
 
-        finalPVID[ActiveInt] = PVID
+        finalVIDTable.sort(key=lambda tup: len(tup[1])) # Sorts first by length then by value (ex: 1.1 is before 1.2 because .1 is < .2)
+        activeInterface = finalVIDTable[0][0]
+        PVID = finalVIDTable[0][1]
+
+        if(numOfVIDs and len(finalVIDTable) > numOfVIDs):
+            del finalVIDTable[len(finalVIDTable) - (len(finalVIDTable) - numOfVIDs):]
+
+        for VIDEntry in finalVIDTable:
+            allPossibleVIDs[VIDEntry[0]].append(VIDEntry[1])
+
+        finalPVID[activeInterface] = PVID
+
 
     else:
         allPossibleVIDs["Self"] = rootVID

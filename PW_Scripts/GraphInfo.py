@@ -16,6 +16,7 @@ def main():
     argParser.add_argument("-s", "--source") # The source of the graph
     argParser.add_argument("--GetVIDs")      # VID-Based Meshed Tree rooted at the inputted vertex
     argParser.add_argument("--ShowPic")
+    argParser.add_argument("--numOfVIDs", type = int)
 
     # Parse the arguments
     args = argParser.parse_args()
@@ -48,6 +49,10 @@ def main():
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
 
         MT_root = args.GetVIDs # The root of the meshed tree
+        numOfVIDs = None
+
+        if(args.numOfVIDs):
+            numOfVIDs = args.numOfVIDs
 
         possibleVIDs = {}
         PVID         = {}
@@ -57,15 +62,17 @@ def main():
 
         # Generating the possible VIDs from each non-root node
         for currentNode in G_MT:
-            possibleVIDs, PVID = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode)
+            possibleVIDs, PVID = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode, numOfVIDs=numOfVIDs)
+            print(possibleVIDs)
+            print(PVID)
             G_MT.nodes[currentNode]['VIDTable'].update(possibleVIDs)
             G_MT.nodes[currentNode]['PVID'].update(PVID)
 
-        PVIDColors = nx.get_node_attributes(G_MT, "PVID")
-        activeLinks = [list(PVIDColors[node].keys())[0] for node in G_MT.nodes if node != MT_root]
-        colorBroadcastTree = ['black' if e in activeLinks else 'white' for e in G_MT.edges]
-        nx.draw(G_MT, with_labels=True, edge_color=colorBroadcastTree, font_weight='bold', labels = PVIDColors)
-        plt.show()
+        #PVIDColors = nx.get_node_attributes(G_MT, "PVID")
+        #activeLinks = [list(PVIDColors[node].keys())[0] for node in G_MT.nodes if node != MT_root]
+        #colorBroadcastTree = ['black' if e in activeLinks else 'white' for e in G_MT.edges]
+        #nx.draw(G_MT, with_labels=True, edge_color=colorBroadcastTree, font_weight='bold', labels = PVIDColors)
+        #plt.show()
 
     # End of script
     return
