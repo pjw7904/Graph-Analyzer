@@ -327,52 +327,51 @@ def getParents(verts,pathBundles):
 def getMeshedPaths(nbrs,root):
     verts = sorted(list(nbrs.keys())) # Lexigraphically sorted list of nodes/vertices because each neighbor-dictionary key is a node/vertex.
 
-    # Dictonaries for the path bundles and a path bundle input queue.
+    # Dictonaries for the path bundles and incoming neighbor bundles
     pathBundles = {}
     inBaskets = {}
 
-    for vert in verts: # for each node in the network
-        # Create a dictonary key for node with a value of an empty list
-        pathBundles[vert] = []
-        inBaskets[vert] = [] # A node's path bundle input queue
+    for vert in verts:         # for each node in the network...
+        pathBundles[vert] = [] # Create an empty path bundle.
+        inBaskets[vert] = []   # Create an empty neighbor bundle input queue.
 
-    pathBundles[root] = [root] # The root node will only ever have a path bundle of size 1 (itself).
-    sending = [root]           # A list with one entry to start: the root node. [The root node is the first node to send path bundle information to neighbors]
-    sendingEvents = []         # An empty list for sending events.
+    pathBundles[root] = [root] # The root node will only ever have a path bundle of size 1 (itself/its own label).
+    sending = [root]           # The root node is the first node to send path bundle information to neighbors. Sending represents nodes which need to update its neighbors
+    sendingEvents = []         # The number of nodes that need to update their neighbors in a given step/event (don't focus on this for convergence).
 
-    while sending: # While there are node's that need to send path bundle updates. [While every node has not converged with its final path bundle]
-        sendingEvents.append(len(sending)) # Append the number of entries in the sending list to sendingEvents
+    while sending: # While there are node's that need to send path bundle updates / while every node has not converged with its final path bundle...
+        sendingEvents.append(len(sending)) # Append the number of entries in the sending list to sendingEvents (don't focus on this for convergence).
         nextSending = []                   # Clear the list that decides which node sends a path bundle update next.
         receiving = []                     # Clear the list of nodes that receive a path bundle update based on the current sender.
 
-        for vert in sending: # For each node that needs to send a path bundle update.
-            for nbr in nbrs[vert]:                       # For each neighbor the current node has, send the current node's path bundle.
-                inBaskets[nbr].append(pathBundles[vert]) # The neighbor receives the path bundle sent by the current node.
-                receiving.extend(nbr)                    # Note that the neighbor has received the path bundle
+        for vert in sending: # For each node that needs to send a path bundle update...
+            for nbr in nbrs[vert]:                       # For each neighbor the current node has, send the current node's path bundle...
+                inBaskets[nbr].append(pathBundles[vert]) # The neighbor receives the neighbor bundle sent by the current node and puts it in its input queue.
+                receiving.extend(nbr)                    # Note that the neighbor has received the neighbor bundle.
 
-        receiving = list(set(receiving)) # Remove all duplicate neighbors from the list due to multiple senders.
+        receiving = list(set(receiving)) # Remove all duplicate neighbors from the received list due to multiple senders that could share a neighbor.
 
-        for vert in receiving:           # For each node that received a path bundle update from a sender.
-            acyclics = []                # List that will contain paths (not a cycle/network loop).
-            for bndl in inBaskets[vert]: # For each path bundle the receiving node obtained.
-                for path in bndl:        # For each path in the current bundle.
-                    if vert not in path: # If the node which received the path bundle is not in the current path.
+        for vert in receiving: # For each node that received a neighbor bundle update from a sender...
+            acyclics = []      # Create a list that will contain paths (not a cycle/network loop).
+            for bndl in inBaskets[vert]: # For each neighbor bundle the receiving node obtained...
+                for path in bndl:         # For each path in the current neighbor bundle being analyzed...
+                    if vert not in path:  # If the node which received the neighbor bundle is not in the current path (its label is not present in the path):
                         acyclics.append(path + vert) # Take the path and append the receiving node, which completes the path from the root to the receiver.
             bndl = copy.deepcopy(pathBundles[vert])  # Get a copy of the receiving node's current path bundle
-            bndl = list(set(bndl).union(acyclics))   # Add the valid paths to the path bundle (perform a union of the current path bundle set and the new paths set).
+            bndl = list(set(bndl).union(acyclics))   # Add the valid paths from the neighbor bundle to the path bundle to create a grand bundle
             bndl.sort()
-            bndl.sort(key=len) # Sort the updated path bundle by the length of the path, meaning the shortest path is the first index of the list.
+            bndl.sort(key=len) # Sort the grand bundle by the length of the path, meaning the shortest path is the first index of the list.
 
-            if len(bndl) < 3: # If the number of paths in the bundle is less than three.
+            if len(bndl) < 3: # If the number of paths in the updated path bundle is less than three...
                 newBndl = bndl
             else:
-                newBndl = trimBundle(bndl) # Trim the path bundle down to three entries.
+                newBndl = trimBundle(bndl) # Trim the updated path bundle down to three entries.
 
-            chng = list(set(newBndl).difference(set(pathBundles[vert]))) # A list of the new paths (if any) that the receiving node added to its path bundle (set difference).
-            if chng:                        # If there was a new path added to the receiving node's path bundle
-                pathBundles[vert] = newBndl # Designate the updated path bundle as the official path bundle of that node
+            chng = list(set(newBndl).difference(set(pathBundles[vert]))) # Find the new paths (if any) that the receiving node added to its path bundle.
+            if chng:                        # If there was a new path added to the receiving node's path bundle...
+                pathBundles[vert] = newBndl # Designate the updated path bundle as the new official path bundle of that node
                 nextSending.append(vert)    # Add node to the list of nodes which needs to send a path bundle update (because it has new paths).
-            inBaskets[vert] = [] # Received path bundle(s) have been processed, so they can be cleared from the node's input queue.
+            inBaskets[vert] = [] # Received neighbor bundle(s) have been processed, so they can be cleared from the node's input queue.
 
         sending = nextSending # The node(s) which needs to send path bundle updates are marked as such.
 
