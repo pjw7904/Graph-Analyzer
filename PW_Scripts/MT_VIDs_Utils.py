@@ -30,11 +30,14 @@ def addInterfaceNums(G):
 def generatePossibleVIDs(network, MT_root, node, startingVID=None, numOfVIDs=None):
     allPossibleVIDs = defaultdict(list)
     finalPVID       = {}
-    activeInterface = None
     finalVIDTable   = [] # Tuple for holding N number of VIDs
+    VIDStats        =
+    activeInterface = None
 
     rootVID = ""
     PVID    = ""
+
+    totalPossibleVIDs = 0
 
     if(startingVID):
         rootVID = startingVID
@@ -54,10 +57,11 @@ def generatePossibleVIDs(network, MT_root, node, startingVID=None, numOfVIDs=Non
             possibleVIDTableAddition = (finalHop, VID)
             finalVIDTable.append(possibleVIDTableAddition)
 
-
         finalVIDTable.sort(key=lambda tup: len(tup[1])) # Sorts first by length then by value (ex: 1.1 is before 1.2 because .1 is < .2)
         activeInterface = finalVIDTable[0][0]
         PVID = finalVIDTable[0][1]
+
+        totalPossibleVIDs = len(finalVIDTable)
 
         if(numOfVIDs and len(finalVIDTable) > numOfVIDs):
             del finalVIDTable[len(finalVIDTable) - (len(finalVIDTable) - numOfVIDs):]
@@ -71,5 +75,7 @@ def generatePossibleVIDs(network, MT_root, node, startingVID=None, numOfVIDs=Non
     else:
         allPossibleVIDs["Self"] = rootVID
         finalPVID["Self"]       = rootVID
+
+    VIDStats = (node, PVID, totalPossibleVIDs)
 
     return allPossibleVIDs, finalPVID

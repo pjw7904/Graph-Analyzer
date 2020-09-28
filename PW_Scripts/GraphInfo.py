@@ -13,14 +13,16 @@ def main():
     # ArgumentParser object to read in command line arguments
     argParser = argparse.ArgumentParser(description="Graph Theory Analysis Script")
 
-    argParser.add_argument("-s", "--source") # The source of the graph
-    argParser.add_argument("--GetVIDs")      # VID-Based Meshed Tree rooted at the inputted vertex
+    argParser.add_argument("-s", "--source")         # The source of the graph
+    argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
+    argParser.add_argument("--CalcBC", action="store_true")
+    argParser.add_argument("--CalcAvgNC", action="store_true")
+    argParser.add_argument("--GetVIDs")              # VID-Based Meshed Tree rooted at the inputted vertex
     argParser.add_argument("--ShowPic")
     argParser.add_argument("--numOfVIDs", type = int)
 
     # Parse the arguments
     args = argParser.parse_args()
-
 
     #######
     # NetworkX Graph:
@@ -29,21 +31,23 @@ def main():
     #######
     G = nx.Graph()
 
-    # If user picks 1, read and analyze a graph created in GENI
+    # If the user wants to import a graph from a GENI RSPEC (TODO: place all of these options in a switch statement in a function)
     if(args.source == "RSPEC"):
         G = getGENINetworkInfo()
 
-        # Calculate metric results based on the appropriate graph theory algorithms included
-        results,betweennessCentrality,avgNeighborConnectivity = calculateMetricsResults(G)
+    if(args.CalcClassicalMetrics):
+        # Calculate metric results based on the appropriate graph theory algorithms included and display them with Tabulate
+        results = calculateClassicalMetricsResults(G)
+        print("{Header}\n{Results}\n".format(Header="____CLASSICAL METRICS____", Results=tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f")))
 
-        # Use Tabulate to print results in a clean table format
-        print(tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f"))
-        print(tabulate(betweennessCentrality, headers=["Node", "Results"], numalign="right", floatfmt=".4f"))
-        print(tabulate(avgNeighborConnectivity, headers=["Degree", "Results"], numalign="right", floatfmt=".4f"))
+    if(args.CalcBC):
+        results = calculatePerNodeBetweennessCentrality(G)
+        print("{Header}\n{Results}\n".format(Header="____BETWEENNESS CENTRALITY____", Results=tabulate(results, headers=["Node", "Results"], numalign="right", floatfmt=".4f")))
 
-        # Draw a picture of the graph and present it to the user in a seperate GUI window
-        #nx.draw(G, with_labels=True, font_weight='bold')
-        #plt.show()
+    if(args.CalcAvgNC):
+        results = calculatePerDegreeAvgNeighborConnectivity(G)
+        print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
+
 
     if(args.GetVIDs):
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
@@ -63,8 +67,6 @@ def main():
         # Generating the possible VIDs from each non-root node
         for currentNode in G_MT:
             possibleVIDs, PVID = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode, numOfVIDs=numOfVIDs)
-            print(possibleVIDs)
-            print(PVID)
             G_MT.nodes[currentNode]['VIDTable'].update(possibleVIDs)
             G_MT.nodes[currentNode]['PVID'].update(PVID)
 
@@ -78,11 +80,10 @@ def main():
     return
 
 
-def calculateMetricsResults(G):
+
+def calculateClassicalMetricsResults(G):
     # Collect results for output
     results     = []
-    BC_results  = []
-    ANC_results = []
 
     # Get other graph-related information
     numOfVerticies = G.number_of_nodes()
@@ -134,15 +135,27 @@ def calculateMetricsResults(G):
     averageClusteringCoeff   = nx.average_clustering(G)
     results.append(["Clustering Coefficent (Graph Average)", averageClusteringCoeff])
 
+    return results
+
+
+def calculatePerNodeBetweennessCentrality(G):
+    BC_results  = []
+
     betweennessCentrality = nx.betweenness_centrality(G)
     for key, value in betweennessCentrality.items():
         BC_results.append([key,value])
+
+    return BC_results
+
+
+def calculatePerDegreeAvgNeighborConnectivity(G):
+    ANC_results = []
 
     avgNeighborConnectivity = nx.average_degree_connectivity(G)
     for key, value in avgNeighborConnectivity.items():
         ANC_results.append([key,value])
 
-    return results, BC_results, ANC_results
+    return ANC_results
 
 
 def getGENINetworkInfo():
