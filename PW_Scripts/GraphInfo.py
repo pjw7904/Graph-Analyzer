@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt # External Python library (Anaconda provided) fo
 import statistics               # Python Standard Library for calculating mathematical statistics of numeric (Real-valued) data
 import math                     # Python Standard Library for access to the mathematical functions defined by the C standard.
 import argparse
-import MT_VIDs_Utils
+import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
+import MTA # MTA simulation based on John's FSM
 
 def main():
     # ArgumentParser object to read in command line arguments
@@ -17,7 +18,8 @@ def main():
     argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
     argParser.add_argument("--CalcBC", action="store_true")
     argParser.add_argument("--CalcAvgNC", action="store_true")
-    argParser.add_argument("--GetVIDs")              # VID-Based Meshed Tree rooted at the inputted vertex
+    argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex
+    argParser.add_argument("--runMTA")
     argParser.add_argument("--ShowPic")
     argParser.add_argument("--numOfVIDs", type = int)
 
@@ -48,6 +50,11 @@ def main():
         results = calculatePerDegreeAvgNeighborConnectivity(G)
         print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
 
+    # MTA simulation
+    if(args.runMTA):
+        print("\n=== MTA SIMULATION ===")
+        MTA.createMeshedTreeDatatStructures(G, args.runMTA)
+        MTA.runMTASimulation(G, args.runMTA)
 
     if(args.GetVIDs):
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)

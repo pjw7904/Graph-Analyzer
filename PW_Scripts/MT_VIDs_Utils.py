@@ -31,7 +31,7 @@ def generatePossibleVIDs(network, MT_root, node, startingVID=None, numOfVIDs=Non
     allPossibleVIDs = defaultdict(list)
     finalPVID       = {}
     finalVIDTable   = [] # Tuple for holding N number of VIDs
-    VIDStats        =
+    #VIDStats        =
     activeInterface = None
 
     rootVID = ""
