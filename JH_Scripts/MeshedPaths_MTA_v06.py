@@ -1,77 +1,55 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# #MeshedPaths
-
-# In[1]:
 import sys
-
-# In[2]:
 import numpy as np
 import math
 import copy
 
-from spanningTreeUtilities import * # from franklin.spanningTreeUtilities import *
-from meshedPathUtilities import * # from franklin.meshedPathUtilities import *
+# Libraries of functions to perform graph-related calcuations and formatting
+from spanningTreeUtilities import *
+from meshedPathUtilities import *
 
+# Numpy stuff, not 100% sure what this does yet, most likely how it formats printed tuples
 np.set_printoptions(precision=3,linewidth=120)
 
-# ##Edge Lists
-# In[4]:
+# Populate structure with graphs (different graph options that are hard-coded)
 edgeChoice = getEdgeChoice()
-#print('Edge choices are: ',sorted(list(edgeChoice.keys())))
 
-# ###Select the Edges and the Root Vertex
-# In[5]:
-#choice = 'icosa'    #Select the list of edge choices above
-#choice = 'dodec'    #Select the list of edge choices above
-choice = 'peterson'    #Select the list of edge choices above
-#choice = 'T16'    #Select the list of edge choices above
+# Select the graph and root to use for the simulation (from getEdgeChoice())
+choice = 'peterson'
+root = 'A'
 edges = copy.deepcopy(edgeChoice[choice])
+
+# Printing information about the graph chosen
 print("\nGraph choice: {0}".format(choice))
 print('\nEdges: ',edges)
-
-# In[6]:
-root = 'A'   #Declare the root vertex
 print('\nThe root vertex is:',root)
 
-# ###Extract the Vertices and the Neighbors
-# In[7]:
+# Extract the Vertices and the Neighbors of those vertices
 graf = getGraph(edges)
 
-# In[8]:
-#print("\nGraph and its neighbors: {0}".format(graf))
-
-# In[9]:
+# Print the verticies and the neighbors of those verticies
 verts = graf.verts
-print("\nVertices: {0}".format(verts))
-
-# In[10]:
 nbrs = graf.nbrs
+print("\nVertices: {0}".format(verts))
 print("\nNeighbors: {0}".format(nbrs))
 
-# In[11]:
+# Running a simulated Meshed Tree Algorithm (MTA), which utilizies path bundles
 mPaths = getMeshedPaths(nbrs, root)
 print("\nMeshed Paths:")
 
-# In[12]:
-# Used to actually print the paths, it's not printed in the above print statement
-null = [print(mPaths.pathBundles[vert]) for vert in verts]
+# Print the paths
+[print(mPaths.pathBundles[vert]) for vert in verts]
 
-# In[13]:
+# Stats about the bundles from the verticies
 bndlSizes = [len(mPaths.pathBundles[vert]) for vert in verts]
 bndlSum = sum(bndlSizes)
+parents = getParents(verts, mPaths.pathBundles)
+valid = getParentsValidity(verts,parents,root)
+children = getChildren(verts,parents)
+
 print('\nbundle sizes = {0}'.format(bndlSizes))
 print('total paths  = {0}'.format(bndlSum))
-
-# In[14]:
-parents = getParents(verts, mPaths.pathBundles)
 print("Node parents: {0}".format(parents))
-
-# In[15]:
-valid = getParentsValidity(verts,parents,root)
 print("Validation: {0}".format(valid))
-
-# In[16]:
-children = getChildren(verts,parents)
 print("Node children: {0}".format(children))
