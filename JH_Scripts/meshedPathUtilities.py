@@ -325,9 +325,9 @@ def getParents(verts,pathBundles):
 
 # The core function of computing path bundles for a given network
 def getMeshedPaths(nbrs,root):
-    verts = sorted(list(nbrs.keys())) # Lexigraphically sorted list of nodes/vertices because each neighbor-dictionary key is a node/vertex.
+    verts = sorted(list(nbrs.keys())) # Lexigraphically sorted list of nodes/vertices because each neighbor dictionary key is a node/vertex.
 
-    # Dictonaries for the path bundles and incoming neighbor bundles
+    # Dictionaries for the path bundles and incoming neighbor bundles
     pathBundles = {}
     inBaskets = {}
 
@@ -365,7 +365,7 @@ def getMeshedPaths(nbrs,root):
             if len(bndl) < 3: # If the number of paths in the updated path bundle is less than three...
                 newBndl = bndl
             else:
-                newBndl = trimBundle(bndl) # Trim the updated path bundle down to three entries.
+                newBndl = trimBundle(bndl) # Trim the updated path bundle down to three entries (which are backups of the primary path)
 
             chng = list(set(newBndl).difference(set(pathBundles[vert]))) # Find the new paths (if any) that the receiving node added to its path bundle.
             if chng:                        # If there was a new path added to the receiving node's path bundle...
@@ -385,9 +385,10 @@ def getPathEdges(path):
 
     return set(edges)
 
+# This function is needed because we are not just taking the three shortest paths, we are picking a shortest path (pPath) and BACKUPS for that path specifically
 def trimBundle(bndl):
-    pPath = bndl[FIRST]
-    if len(pPath) < 3:
+    pPath = bndl[FIRST] # The primary path AKA the best path in the path bundle
+    if len(pPath) < 3: # If the primary path is a one-hop neighbor, then take the first three 
         newBndl = bndl[FIRST:2]
     else:
         newBndl = [pPath]
