@@ -69,48 +69,50 @@ def runMTASimulation(G, root):
 
 def tuesdayAlgo(Graph, source, NP):
 
-    createMeshedTreeDatatStructures(Graph, source) # Every vertex is given a single-character ID 
+    createMeshedTreeDatatStructures(Graph, source) # Every vertex is given a single-character ID (starting with 'A') 
 
     for vertex in Graph:
         Graph.nodes[vertex]['pathBundle'] = [] # A data structure (list for Python) to hold paths to the vertex from the root
         Graph.nodes[vertex]['inBasket']   = [] # A data structure (list for Python) to hold path bundles send from nbrs to vertex
 
-    Graph.nodes[source]['pathBundle'].append(Graph.nodes[source]['ID']) # source's PB contains only the trivial path RID (Root ID)
+    Graph.nodes[source]['pathBundle'].append(Graph.nodes[source]['ID']) # source's path bundle contains only the trivial path RID (Root ID)
     
-    sending = set([source]) # Sending is the set containing any vertex ready to send its PB.
+    sending = set([source]) # Sending is the set containing any vertex ready to send its path bundle.
 
-    nextSending = [] # Verticies that need to send a pb update to nbrs during the next cycle
+    nextSending = []    # Verticies that need to send a path bundle update to nbrs during the next cycle
     receiving   = set() # Verticies that have received a path bundle update from a nbr
 
     while sending: # Convergence happens when sending goes empty
+        # Clear structures that keep track of who needs to send path bundles and who has received them
         nextSending.clear()
         receiving.clear()
 
         for u in sending: # For each vertex u in the sending list
             u_pathBundle = Graph.nodes[u]['pathBundle']
-            for v in Graph.neighbors(u):
+            for v in Graph.neighbors(u): # For each vertex v who is a nbr of vertex u
                 v_inBasket = Graph.nodes[v]['inBasket']
 
-                v_inBasket.extend(u_pathBundle)
-                receiving.add(v)
+                v_inBasket.extend(u_pathBundle) # Add the paths in vertex u's path bundle to vertex v's inBasket
+                receiving.add(v) # Note that vertex v received a path bundle from a nbr (vertex u)
 
         for v in list(receiving):
-            Graph.nodes[v]['inBasket'] = [path + Graph.nodes[v]['ID'] for path in Graph.nodes[v]['inBasket'] if Graph.nodes[v]['ID'] not in path] # Delete any path that already contains vertex v
+            # Delete any path that already contains vertex v and append the vertex ID to the end of valid paths
+            Graph.nodes[v]['inBasket'] = [path + Graph.nodes[v]['ID'] for path in Graph.nodes[v]['inBasket'] if Graph.nodes[v]['ID'] not in path]
             
-            v_grandBundle = list(set(Graph.nodes[v]['pathBundle']).union(Graph.nodes[v]['inBasket']))
-            v_grandBundle.sort(key=len)
+            v_grandBundle = list(set(Graph.nodes[v]['pathBundle']).union(Graph.nodes[v]['inBasket'])) # Merge path bundle and valid inBasket paths to create a grand bundle
+            v_grandBundle.sort(key=len) # Paths in a path bundle are kept in ascending order by pathlength
 
-            del v_grandBundle[NP:]
+            del v_grandBundle[NP:] # Delete paths in the grand bundle until it is has the shortest NP paths
 
-            pbChanges = list(set(v_grandBundle).difference(set(Graph.nodes[v]['pathBundle'])))
+            pbChanges = list(set(v_grandBundle).difference(set(Graph.nodes[v]['pathBundle']))) # Check if the path bundle has been updated
 
+            # If there are updates to the path bundle, the vertex needs to send an update
             if(pbChanges):
                 Graph.nodes[v]['pathBundle'] = v_grandBundle
                 nextSending.append(v)
 
-            Graph.nodes[v]['inBasket'].clear()
+            Graph.nodes[v]['inBasket'].clear() # Clear the inBasket for this cycle
     
-        sending = nextSending.copy()
+        sending = nextSending.copy() # Get the new list of verticies that need to send updates
 
-
-    return
+    return # Nothing returned, Graph object attributes modified
