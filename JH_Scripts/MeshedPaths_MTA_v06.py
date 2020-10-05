@@ -16,7 +16,7 @@ np.set_printoptions(precision=3,linewidth=120)
 edgeChoice = getEdgeChoice()
 
 # Select the graph and root to use for the simulation (from getEdgeChoice())
-choice = 'peterson'
+choice = 'S4'
 root = 'A'
 edges = copy.deepcopy(edgeChoice[choice])
 

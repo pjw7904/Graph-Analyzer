@@ -19,9 +19,14 @@ def main():
     argParser.add_argument("--CalcBC", action="store_true")
     argParser.add_argument("--CalcAvgNC", action="store_true")
     argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex
-    argParser.add_argument("--runMTA")
     argParser.add_argument("--ShowPic")
     argParser.add_argument("--numOfVIDs", type = int)
+
+    # Algorithm for 3 paths (not worrying about specifc backups or disjoint paths)
+    argParser.add_argument("--tuesdayAlgo")
+
+    # Algorithm based on the FSM and root-syncing idea
+    argParser.add_argument("--runMTA")
 
     # Parse the arguments
     args = argParser.parse_args()
@@ -50,11 +55,22 @@ def main():
         results = calculatePerDegreeAvgNeighborConnectivity(G)
         print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
 
-    # MTA simulation
+    # MTA simulation (FSM with root syncing version)
     if(args.runMTA):
         print("\n=== MTA SIMULATION ===")
         MTA.createMeshedTreeDatatStructures(G, args.runMTA)
         MTA.runMTASimulation(G, args.runMTA)
+
+    # MTA simulation (version with 3 paths, nothing disjoint):
+    if(args.tuesdayAlgo):
+        MTA.tuesdayAlgo(G, args.tuesdayAlgo, 3)
+
+        for vertex in G:
+            print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
+            for path in G.nodes[vertex]['pathBundle']:
+                print(path)
+            print("===\n")
+
 
     if(args.GetVIDs):
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)

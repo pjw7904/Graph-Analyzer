@@ -361,7 +361,7 @@ def getMeshedPaths(nbrs,root):
             bndl = list(set(bndl).union(acyclics))   # Add the valid paths from the neighbor bundle to the path bundle to create a grand bundle
             bndl.sort()
             bndl.sort(key=len) # Sort the grand bundle by the length of the path, meaning the shortest path is the first index of the list.
-
+    
             if len(bndl) < 3: # If the number of paths in the updated path bundle is less than three...
                 newBndl = bndl
             else:

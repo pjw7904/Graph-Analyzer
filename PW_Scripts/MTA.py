@@ -5,8 +5,9 @@ def createMeshedTreeDatatStructures(G, root):
 
     for node in G:
         G.nodes[node]['ID'] = chr(65 + IDCount)
-
+    
         if(node == root):
+            '''
             rootInfo = {
                 'isRoot': True,
                 'state': "F",
@@ -17,9 +18,11 @@ def createMeshedTreeDatatStructures(G, root):
             }
 
             G.nodes[node]['rootInfo'] = rootInfo
+            '''
             print("- Root node is {0}, ID = {1}".format(node, G.nodes[node]['ID']))
 
         else:
+            '''
             nodeInfo = {
                 'isRoot': False,
                 'state': "I",
@@ -30,6 +33,7 @@ def createMeshedTreeDatatStructures(G, root):
             }
 
             G.nodes[node]['nodeInfo'] = nodeInfo
+            '''
             print("- Non-Root node {0}, ID = {1}".format(node, G.nodes[node]['ID']))
 
         IDCount += 1
@@ -63,15 +67,50 @@ def runMTASimulation(G, root):
     return
 
 
+def tuesdayAlgo(Graph, source, NP):
 
-'''
-class MTA:
-  def __init__(self, name, age):
-    self.name = name
-    self.age = age
+    createMeshedTreeDatatStructures(Graph, source) # Every vertex is given a single-character ID 
 
-p1 = MTA("John", 36)
+    for vertex in Graph:
+        Graph.nodes[vertex]['pathBundle'] = [] # A data structure (list for Python) to hold paths to the vertex from the root
+        Graph.nodes[vertex]['inBasket']   = [] # A data structure (list for Python) to hold path bundles send from nbrs to vertex
 
-print(p1.name)
-print(p1.age)
-'''
+    Graph.nodes[source]['pathBundle'].append(Graph.nodes[source]['ID']) # source's PB contains only the trivial path RID (Root ID)
+    
+    sending = set([source]) # Sending is the set containing any vertex ready to send its PB.
+
+    nextSending = [] # Verticies that need to send a pb update to nbrs during the next cycle
+    receiving   = set() # Verticies that have received a path bundle update from a nbr
+
+    while sending: # Convergence happens when sending goes empty
+        nextSending.clear()
+        receiving.clear()
+
+        for u in sending: # For each vertex u in the sending list
+            u_pathBundle = Graph.nodes[u]['pathBundle']
+            for v in Graph.neighbors(u):
+                v_inBasket = Graph.nodes[v]['inBasket']
+
+                v_inBasket.extend(u_pathBundle)
+                receiving.add(v)
+
+        for v in list(receiving):
+            Graph.nodes[v]['inBasket'] = [path + Graph.nodes[v]['ID'] for path in Graph.nodes[v]['inBasket'] if Graph.nodes[v]['ID'] not in path] # Delete any path that already contains vertex v
+            
+            v_grandBundle = list(set(Graph.nodes[v]['pathBundle']).union(Graph.nodes[v]['inBasket']))
+            v_grandBundle.sort(key=len)
+
+            del v_grandBundle[NP:]
+
+            pbChanges = list(set(v_grandBundle).difference(set(Graph.nodes[v]['pathBundle'])))
+
+            if(pbChanges):
+                Graph.nodes[v]['pathBundle'] = v_grandBundle
+                nextSending.append(v)
+
+            Graph.nodes[v]['inBasket'].clear()
+    
+        sending = nextSending.copy()
+
+
+    return
