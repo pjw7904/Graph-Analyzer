@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from heapq import merge 
+import copy
 
 def createMeshedTreeDatatStructures(G, root):
     IDCount = 0
@@ -68,7 +70,7 @@ def runMTASimulation(G, root):
 
 
 def tuesdayAlgo(Graph, source, NP):
-
+    
     createMeshedTreeDatatStructures(Graph, source) # Every vertex is given a single-character ID (starting with 'A') 
 
     for vertex in Graph:
@@ -82,7 +84,13 @@ def tuesdayAlgo(Graph, source, NP):
     nextSending = []    # Verticies that need to send a path bundle update to nbrs during the next cycle
     receiving   = set() # Verticies that have received a path bundle update from a nbr
 
+    sendingEvents = []
+    sendingEvents2 = []
+
     while sending: # Convergence happens when sending goes empty
+        sendingEvents.append(len(sending))
+        sendingEvents2.append((len(sending),sending))
+
         # Clear structures that keep track of who needs to send path bundles and who has received them
         nextSending.clear()
         receiving.clear()
@@ -91,19 +99,21 @@ def tuesdayAlgo(Graph, source, NP):
             u_pathBundle = Graph.nodes[u]['pathBundle']
             for v in Graph.neighbors(u): # For each vertex v who is a nbr of vertex u
                 v_inBasket = Graph.nodes[v]['inBasket']
-
-                v_inBasket.extend(u_pathBundle) # Add the paths in vertex u's path bundle to vertex v's inBasket
+                v_inBasket.append(copy.deepcopy(u_pathBundle)) # old way: v_inBasket.extend(u_pathBundle)   # Add the paths in vertex u's path bundle to vertex v's inBasket
                 receiving.add(v) # Note that vertex v received a path bundle from a nbr (vertex u)
 
         for v in list(receiving):
             # Delete any path that already contains vertex v and append the vertex ID to the end of valid paths
-            Graph.nodes[v]['inBasket'] = [path + Graph.nodes[v]['ID'] for path in Graph.nodes[v]['inBasket'] if Graph.nodes[v]['ID'] not in path]
             
-            v_grandBundle = list(set(Graph.nodes[v]['pathBundle']).union(Graph.nodes[v]['inBasket'])) # Merge path bundle and valid inBasket paths to create a grand bundle
-            v_grandBundle.sort(key=len) # Paths in a path bundle are kept in ascending order by pathlength
+            # NEXT THREE LINES IS WHAT HAS TO BE UPDATED WITH MERGE
+            #Graph.nodes[v]['inBasket'] = [path + Graph.nodes[v]['ID'] for path in Graph.nodes[v]['inBasket'] if Graph.nodes[v]['ID'] not in path]
+            #v_grandBundle = list(set(Graph.nodes[v]['pathBundle']).union(Graph.nodes[v]['inBasket'])) # Merge path bundle and valid inBasket paths to create a grand bundle
+            #v_grandBundle.sort(key=len) # Paths in a path bundle are kept in ascending order by pathlength
+            v_grandBundle = mergeBundles(Graph.nodes[v], NP)
 
             del v_grandBundle[NP:] # Delete paths in the grand bundle until it is has the shortest NP paths
 
+            # This is not coming up with anything
             pbChanges = list(set(v_grandBundle).difference(set(Graph.nodes[v]['pathBundle']))) # Check if the path bundle has been updated
 
             # If there are updates to the path bundle, the vertex needs to send an update
@@ -115,4 +125,20 @@ def tuesdayAlgo(Graph, source, NP):
     
         sending = nextSending.copy() # Get the new list of verticies that need to send updates
 
-    return # Nothing returned, Graph object attributes modified
+    return sendingEvents, sendingEvents2
+
+
+def mergeBundles(v, NP):
+    finishedMerging = False
+    bestPath = 0 # First entry (index 0) is always the current best path
+    v_grandBundle = copy.deepcopy(v['pathBundle'])
+
+    while(not finishedMerging):
+        # Pythonic representation of a more efficient for loop
+        bestPaths = [pathBundle.pop(bestPath) + v['ID'] for pathBundle in v['inBasket'] if pathBundle and v['ID'] not in pathBundle[bestPath]]
+        v_grandBundle = list(merge(v_grandBundle, bestPaths, key=len))
+
+        if(len(v_grandBundle) >= NP or not bestPaths):
+            finishedMerging = True
+
+    return v_grandBundle
