@@ -1,29 +1,40 @@
 #!/usr/bin/env python
-from GENIutils   import *        # Custom library for GENI functions
-from tabulate    import tabulate # External Python library (Anaconda provided) for printing formatted ASCII tables
-import networkx          as nx  # External Python library (Anaconda provided) for graph creation and analysis
-import numpy             as np  # External Python library (Anaconda provided) for all thinks linear algebra, matricies, etc and efficent memory usage compared to Py lists
-import matplotlib.pyplot as plt # External Python library (Anaconda provided) for drawing graphs
-import statistics               # Python Standard Library for calculating mathematical statistics of numeric (Real-valued) data
-import math                     # Python Standard Library for access to the mathematical functions defined by the C standard.
-import argparse
+
+# Standard modules
+import statistics # Calculating mathematical statistics of numeric (Real-valued) data
+import math # Access to the mathematical functions defined by the C standard.
+import argparse # Parsing command-line arguments
+import configparser # Parsing configuration file arguments
+
+# External modules
+from tabulate import tabulate # Printing formatted ASCII tables
+import networkx as nx # Graph creation and analysis
+import numpy as np # For all thinks linear algebra, matricies, etc and efficent memory usage compared to Py lists
+import matplotlib.pyplot as plt # Drawing graphs
+
+# Custom modules
+from GENIutils import getConfigInfo # Custom library for GENI functions
 import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
 import MTA # MTA simulation based on John's FSM
 
+'''
+Start of program
+'''
 def main():
-    # ArgumentParser object to read in command line arguments
+    # ArgumentParser object to read in command-line arguments
     argParser = argparse.ArgumentParser(description="Graph Theory Analysis Script")
 
-    argParser.add_argument("-s", "--source")         # The source of the graph
+    argParser.add_argument("-s", "--source", nargs='*')   # The source of the graph
     argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
     argParser.add_argument("--CalcBC", action="store_true")
     argParser.add_argument("--CalcAvgNC", action="store_true")
     argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex
-    argParser.add_argument("--ShowPic")
+    argParser.add_argument("--ShowPic", action="store_true")
     argParser.add_argument("--numOfVIDs", type = int)
 
     # Algorithm for 3 paths (not worrying about specifc backups or disjoint paths)
     argParser.add_argument("--tuesdayAlgo")
+    argParser.add_argument("--PanAlgo")
 
     # Algorithm based on the FSM and root-syncing idea
     argParser.add_argument("--runMTA")
@@ -38,9 +49,15 @@ def main():
     #######
     G = nx.Graph()
 
-    # If the user wants to import a graph from a GENI RSPEC (TODO: place all of these options in a switch statement in a function)
-    if(args.source == "RSPEC"):
+    # If the user wants to import a graph from a GENI RSPEC
+    if(args.source[0] == "RSPEC"):
         G = getGENINetworkInfo()
+
+    elif(args.source[0] == "graphml"):
+        G = nx.read_graphml(path=args.source[1])
+
+        for v in G:
+            print(v)
 
     if(args.CalcClassicalMetrics):
         # Calculate metric results based on the appropriate graph theory algorithms included and display them with Tabulate
@@ -63,13 +80,29 @@ def main():
 
     # MTA simulation (version with 3 paths, nothing disjoint):
     if(args.tuesdayAlgo):
-        MTA.tuesdayAlgo(G, args.tuesdayAlgo, 3)
+        sendingEvents, sendingEvents2 = MTA.tuesdayAlgo(G, args.tuesdayAlgo, 3)
 
         for vertex in G:
             print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
             for path in G.nodes[vertex]['pathBundle']:
                 print(path)
             print("===\n")
+
+        print(sendingEvents)
+        print("sending events 2: {0}".format(sendingEvents2))
+        print(len(sendingEvents2))
+
+
+    if(args.PanAlgo):
+        nodeSendingCount = MTA.PanAlgo(G, args.PanAlgo)
+
+        for vertex in G:
+            print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
+            for path in G.nodes[vertex]['pathBundle']:
+                print(path)
+            print("===\n")
+        
+        print("Sending count: {0}".format(nodeSendingCount))
 
 
     if(args.GetVIDs):
@@ -98,6 +131,10 @@ def main():
         #colorBroadcastTree = ['black' if e in activeLinks else 'white' for e in G_MT.edges]
         #nx.draw(G_MT, with_labels=True, edge_color=colorBroadcastTree, font_weight='bold', labels = PVIDColors)
         #plt.show()
+
+    if(args.ShowPic):
+        nx.draw(G, with_labls=True)
+        plt.show()
 
     # End of script
     return
@@ -208,6 +245,7 @@ def getGENINetworkInfo():
 
     return G
 
+
 # Kirchhoff's matrix tree theorem is implemented to count the number of spanning trees
 def SpanningTreeCount(G):
     treeCount = 0
@@ -250,7 +288,7 @@ def graphDegreeAverage(G):
 def graphHeterogeneity(G):
     heterogeneity = 0
     nodeDegrees = []
-    numOfVerticies = G.number_of_nodes()
+    #numOfVerticies = G.number_of_nodes() not used, not sure why right now
     averageNodeDegree = graphDegreeAverage(G)
 
     for V in G:
