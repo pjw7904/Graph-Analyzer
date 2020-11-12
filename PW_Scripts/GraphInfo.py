@@ -243,6 +243,12 @@ def getGENINetworkInfo():
     G.add_nodes_from(V)
     G.add_edges_from(E)
 
+    # Write this graph to a graphml file to be reused later on
+    fileName = input("Graph name: ")
+    nx.write_graphml(G=G, path=fileName + ".graphml", prettyprint=True)
+    print("Note: graph {0} has been converted to a graphml file named {1}. It is saved in the current directory."
+        .format(fileName, fileName + ".graphml"))
+
     return G
 
 
