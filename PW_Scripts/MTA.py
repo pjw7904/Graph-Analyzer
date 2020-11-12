@@ -3,6 +3,8 @@ from heapq import merge
 import copy
 
 def createMeshedTreeDatatStructures(G, root):
+    logFile = open("algoOutput.txt", "w")
+
     IDCount = 0
 
     for node in G:
@@ -22,6 +24,7 @@ def createMeshedTreeDatatStructures(G, root):
             G.nodes[node]['rootInfo'] = rootInfo
             '''
             print("- Root node is {0}, ID = {1}".format(node, G.nodes[node]['ID']))
+            logFile.write("Root node is {0}, ID = {1}\n".format(node, G.nodes[node]['ID']))
 
         else:
             '''
@@ -37,10 +40,13 @@ def createMeshedTreeDatatStructures(G, root):
             G.nodes[node]['nodeInfo'] = nodeInfo
             '''
             print("- Non-Root node {0}, ID = {1}".format(node, G.nodes[node]['ID']))
+            logFile.write("Non-Root node {0}, ID = {1}\n".format(node, G.nodes[node]['ID']))
 
         IDCount += 1
 
     print("---------\n")
+    logFile.write("---------\n\n")
+    logFile.close()
 
     return
 
@@ -104,16 +110,10 @@ def tuesdayAlgo(Graph, source, NP):
 
         for v in list(receiving):
             # Delete any path that already contains vertex v and append the vertex ID to the end of valid paths
-            
-            # NEXT THREE LINES IS WHAT HAS TO BE UPDATED WITH MERGE
-            #Graph.nodes[v]['inBasket'] = [path + Graph.nodes[v]['ID'] for path in Graph.nodes[v]['inBasket'] if Graph.nodes[v]['ID'] not in path]
-            #v_grandBundle = list(set(Graph.nodes[v]['pathBundle']).union(Graph.nodes[v]['inBasket'])) # Merge path bundle and valid inBasket paths to create a grand bundle
-            #v_grandBundle.sort(key=len) # Paths in a path bundle are kept in ascending order by pathlength
             v_grandBundle = mergeBundles(Graph.nodes[v], NP)
 
             del v_grandBundle[NP:] # Delete paths in the grand bundle until it is has the shortest NP paths
 
-            # This is not coming up with anything
             pbChanges = list(set(v_grandBundle).difference(set(Graph.nodes[v]['pathBundle']))) # Check if the path bundle has been updated
 
             # If there are updates to the path bundle, the vertex needs to send an update
@@ -142,3 +142,97 @@ def mergeBundles(v, NP):
             finishedMerging = True
 
     return v_grandBundle
+
+
+def PanAlgo(Graph, root):
+    logFile = open("algoOutput.txt", "a")
+
+    createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
+
+    INFINITE = -1 # Representing a hop count value of infinity as a negative hop count value
+    topNode = 0 # Representing the first index of the queue
+
+    # Assign the root's hop count value = 0
+    Graph.nodes[root]['hopCountValue'] = 0
+    logFile.write("root ({0}) hop count value = 0\n".format(root))
+
+    # Counts the number of times a given node is added to the sending queue and sends updates, for complexity calculations
+    nodeSendingCount = {}
+
+    # All other verticies hop count value = INFINITE
+    for vertex in Graph:
+        if vertex != root:
+            Graph.nodes[vertex]['hopCountValue'] = INFINITE
+            logFile.write("{0} hop count value = INFINITE\n".format(vertex))
+
+            # For each vertex v in graph, pathBundle[v] <-- []
+            Graph.nodes[vertex]['pathBundle'] = []
+            logFile.write("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
+        else:
+            Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
+            logFile.write("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
+
+        nodeSendingCount[vertex] = 0
+
+    # Define max paths
+    maxPaths = 3
+
+    sendingQueue = [root] # Queue being represented as list data structure
+
+    #sendingEvents = []
+    #sendingEvents2 = []
+
+    queueCounter = 0
+
+    # Define function sending(v)
+    while sendingQueue:
+        # Update meta-information about algorithm sending queue
+        queueCounter += 1
+        logFile.write("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, sendingQueue))
+
+        # v is the top node in the sending queue
+        v = sendingQueue[topNode]
+        logFile.write("SENDING NODE: {0}\nPATH BUNDLE = {1}\n\n".format(v, Graph.nodes[v]['pathBundle']))
+        nodeSendingCount[v] += 1
+
+        # For each neighbor x of (v)
+        for x in Graph.neighbors(v):
+            logFile.write("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
+
+            if(Graph.nodes[x]['hopCountValue'] == INFINITE):
+                Graph.nodes[x]['hopCountValue'] = Graph.nodes[v]['hopCountValue'] + 1
+                logFile.write("\tHop count value updated to {0}\n".format(Graph.nodes[x]['hopCountValue']))
+
+            logFile.write("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+
+            if(len(Graph.nodes[x]['pathBundle']) < maxPaths):
+                # Append 'x' to each of v's paths in v's path bundle if not already in the path bundle
+                newPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
+                logFile.write("\tNew path(s): {0}\n".format(newPaths))
+
+                # Add these paths to x's path bundle
+                Graph.nodes[x]['pathBundle'].extend(newPaths)
+                logFile.write("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+
+                # Remove extra paths (keep only 3)
+                logFile.write("\tRemoved paths: {0}\n".format(Graph.nodes[x]['pathBundle'][maxPaths:]))
+                del Graph.nodes[x]['pathBundle'][maxPaths:]
+                
+                logFile.write("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+
+                # Add 'x' to the sending queue if not already in the queue (issue: it may never hit 3 paths, have to fix this)
+                if x not in sendingQueue and newPaths:
+                    sendingQueue.append(x)
+                    logFile.write("\tNode appended to sending queue\n")
+
+                logFile.write("\n")
+
+            else:
+                logFile.write("\t Max path limit hit, no changes.\n\n")
+
+        # Remove 'v' from the sending queue now that we are done with each neighbor
+        sendingQueue.pop(topNode)
+    
+    logFile.close()
+
+    return nodeSendingCount
