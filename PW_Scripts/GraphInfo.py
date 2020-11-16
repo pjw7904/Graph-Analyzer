@@ -5,6 +5,7 @@ import statistics # Calculating mathematical statistics of numeric (Real-valued)
 import math # Access to the mathematical functions defined by the C standard.
 import argparse # Parsing command-line arguments
 import configparser # Parsing configuration file arguments
+import sys
 
 # External modules
 from tabulate import tabulate # Printing formatted ASCII tables
@@ -25,56 +26,42 @@ def main():
     # ArgumentParser object to read in command-line arguments
     argParser = argparse.ArgumentParser(description="Graph Theory Analysis Script")
 
-    argParser.add_argument("-s", "--source", nargs='*')   # The source of the graph
+    # The source of the graph
+    argParser.add_argument("-s", "--source", nargs='*')
+
+    # Calculating graph metrics
     argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
-    argParser.add_argument("--CalcBC", action="store_true")
+    argParser.add_argument("--CalcBC", action="store_true") # Compute betweenness centrality for each vertex
     argParser.add_argument("--CalcAvgNC", action="store_true")
-    argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex
+
+    # Meshed Tree Algorithm (MTA) simulation options depending on how it is implemented
+    argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex (classic MTA)
+    argParser.add_argument("--numOfVIDs", type = int) # Used with GetVIDs to describe the maximum amount of VIDs to store
+    argParser.add_argument("--tuesdayAlgo") # JH version of basic MTA
+    argParser.add_argument("--PanAlgo") # YP version of basic MTA 
+
+    # Get a visual of the generated graph
     argParser.add_argument("--ShowPic", action="store_true")
-    argParser.add_argument("--numOfVIDs", type = int)
-
-    # Algorithm for 3 paths (not worrying about specifc backups or disjoint paths)
-    argParser.add_argument("--tuesdayAlgo")
-    argParser.add_argument("--PanAlgo")
-
-    # Algorithm based on the FSM and root-syncing idea
-    argParser.add_argument("--runMTA")
 
     # Parse the arguments
     args = argParser.parse_args()
 
     #######
-    # NetworkX Graph:
+    # NetworkX Graph In Use:
     # |Type       | Self-Loops | Parallel Edges|
     # |Undirected | No         | No            |
     #######
-    G = nx.Graph()
+    G = generateGraph(args.source)
 
-    # If the user wants to import a graph from a GENI RSPEC
-    if(args.source[0] == "RSPEC"):
-        G = getGENINetworkInfo()
+    # Structure to hold what metrics the user wants calcuated
+    metricOptions = {
+        "Classical": args.CalcClassicalMetrics,
+        "BC": args.CalcBC,
+        "AvgNC": args.CalcAvgNC
+    }
 
-    elif(args.source[0] == "graphml"):
-        G = nx.read_graphml(path=args.source[1])
-
-    if(args.CalcClassicalMetrics):
-        # Calculate metric results based on the appropriate graph theory algorithms included and display them with Tabulate
-        results = ClassicalMetrics.calculateClassicalMetricsResults(G)
-        print("{Header}\n{Results}\n".format(Header="____CLASSICAL METRICS____", Results=tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f")))
-
-    if(args.CalcBC):
-        results = ClassicalMetrics.calculatePerNodeBetweennessCentrality(G)
-        print("{Header}\n{Results}\n".format(Header="____BETWEENNESS CENTRALITY____", Results=tabulate(results, headers=["Node", "Results"], numalign="right", floatfmt=".4f")))
-
-    if(args.CalcAvgNC):
-        results = ClassicalMetrics.calculatePerDegreeAvgNeighborConnectivity(G)
-        print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
-
-    # MTA simulation (FSM with root syncing version)
-    if(args.runMTA):
-        print("\n=== MTA SIMULATION ===")
-        MTA.createMeshedTreeDatatStructures(G, args.runMTA)
-        MTA.runMTASimulation(G, args.runMTA)
+    # Compute and print out the metric results
+    computeMetrics(metricOptions, G)
 
     # MTA simulation (version with 3 paths, nothing disjoint):
     if(args.tuesdayAlgo):
@@ -138,6 +125,21 @@ def main():
     return
 
 
+def generateGraph(sourceInput):
+    graphFormat = sourceInput[0]
+
+    if(graphFormat == "RSPEC"):
+        G = getGENINetworkInfo()
+
+    elif(graphFormat == "graphml" and len(sourceInput) == 2):
+        G = nx.read_graphml(path=sourceInput[1])
+
+    else:
+        sys.exit("Error: invalid source, please try again using RSPEC or graphml")
+
+    return G
+
+
 def getGENINetworkInfo():
     # Read the necessary configuration information from creds.cnf
     switchNamingSyntax  = getConfigInfo("RSTP Utilities", "MTSName")
@@ -171,6 +173,22 @@ def getGENINetworkInfo():
 
     return G
 
+
+def computeMetrics(calcOptions, G):
+    if(calcOptions["Classical"]):
+        # Calculate metric results based on the appropriate graph theory algorithms included and display them with Tabulate
+        results = ClassicalMetrics.calculateClassicalMetricsResults(G)
+        print("{Header}\n{Results}\n".format(Header="____CLASSICAL METRICS____", Results=tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f")))
+
+    if(calcOptions["BC"]):
+        results = ClassicalMetrics.calculatePerNodeBetweennessCentrality(G)
+        print("{Header}\n{Results}\n".format(Header="____BETWEENNESS CENTRALITY____", Results=tabulate(results, headers=["Node", "Results"], numalign="right", floatfmt=".4f")))
+
+    if(calcOptions["AvgNC"]):
+        results = ClassicalMetrics.calculatePerDegreeAvgNeighborConnectivity(G)
+        print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
+
+    return
 
 # Calling main function, start of script
 if __name__ == "__main__":
