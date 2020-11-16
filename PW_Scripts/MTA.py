@@ -207,7 +207,9 @@ def PanAlgo(Graph, root):
 
             if(len(Graph.nodes[x]['pathBundle']) < maxPaths):
                 # Append 'x' to each of v's paths in v's path bundle if not already in the path bundle
-                newPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
+                # Duplicates if the same node sends the same paths to the same neighbor more than once (node-5 --> node-13)
+                # and not path.startswith(tuple(Graph.nodes[x]['pathBundle']))
+                newPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
                 logFile.write("\tNew path(s): {0}\n".format(newPaths))
 
                 # Add these paths to x's path bundle
