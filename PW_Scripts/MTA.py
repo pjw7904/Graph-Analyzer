@@ -159,6 +159,8 @@ def PanAlgo(Graph, root):
     # Counts the number of times a given node is added to the sending queue and sends updates, for complexity calculations
     nodeSendingCount = {}
 
+    # Birds-eye-view sending queue to not send to additional nodes.
+
     # All other verticies hop count value = INFINITE
     for vertex in Graph:
         if vertex != root:
@@ -172,6 +174,11 @@ def PanAlgo(Graph, root):
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
             logFile.write("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
+        # Checks whether or not a node has reached NP paths
+        #Graph.nodes[vertex]['atMaxPaths'] = False
+        # Counts the number of times a node has to send an update to a neighbor (decreases as atMaxPaths becomes true)
+        Graph.nodes[vertex]['updateCounter'] = 0
+
         nodeSendingCount[vertex] = 0
 
     # Define max paths
@@ -179,9 +186,7 @@ def PanAlgo(Graph, root):
 
     sendingQueue = [root] # Queue being represented as list data structure
 
-    #sendingEvents = []
-    #sendingEvents2 = []
-
+    # Count the number of iterations needed to send all updates
     queueCounter = 0
 
     # Define function sending(v)
@@ -195,7 +200,7 @@ def PanAlgo(Graph, root):
         logFile.write("SENDING NODE: {0}\nPATH BUNDLE = {1}\n\n".format(v, Graph.nodes[v]['pathBundle']))
         nodeSendingCount[v] += 1
 
-        # For each neighbor x of (v)
+        # For each neighbor x of v
         for x in Graph.neighbors(v):
             logFile.write("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
 
@@ -205,10 +210,11 @@ def PanAlgo(Graph, root):
 
             logFile.write("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
-            if(len(Graph.nodes[x]['pathBundle']) < maxPaths):
+            if(len(Graph.nodes[x]['pathBundle']) < maxPaths and x != root):
+                # Update the senders count because it has to transmit its path bundle to a neighbor without the max number of paths
+                Graph.nodes[v]['updateCounter'] += 1
+
                 # Append 'x' to each of v's paths in v's path bundle if not already in the path bundle
-                # Duplicates if the same node sends the same paths to the same neighbor more than once (node-5 --> node-13)
-                # and not path.startswith(tuple(Graph.nodes[x]['pathBundle']))
                 newPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
                 logFile.write("\tNew path(s): {0}\n".format(newPaths))
 
@@ -230,10 +236,15 @@ def PanAlgo(Graph, root):
                 logFile.write("\n")
 
             else:
-                logFile.write("\t Max path limit hit, no changes.\n\n")
+                logFile.write("\t Max path limit hit (or root), no changes.\n\n")
 
         # Remove 'v' from the sending queue now that we are done with each neighbor
         sendingQueue.pop(topNode)
+
+    logFile.write("-----------\nFINAL RESULTS: \n")
+    for vertex in Graph:
+        logFile.write("{0} ({1})\n\tpath bundle = {2}\n\thop count = {3}\n\tqueue count = {4}\n\tsending count = {5}\n\n"
+            .format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], Graph.nodes[vertex]['hopCountValue'], nodeSendingCount[vertex], Graph.nodes[vertex]['updateCounter']))
     
     logFile.close()
 
