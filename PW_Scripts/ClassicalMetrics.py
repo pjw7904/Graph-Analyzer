@@ -101,10 +101,14 @@ def SpanningTreeCount(G):
 def graphIsComplete(G):
     isCompleteGraph = False
 
+    # Get the number of verticies and edges in the graph
     numOfVerticies = G.number_of_nodes()
     numOfEdges = G.number_of_edges()
 
-    if(numOfEdges == numOfVerticies-1):
+    # Calculate the number of edges that are needed to the graph complete
+    numOfEdgesInCompleteGraph = (numOfVerticies * (numOfVerticies - 1)) / 2
+
+    if(numOfEdges == numOfEdgesInCompleteGraph):
         isCompleteGraph = True
 
     return isCompleteGraph
