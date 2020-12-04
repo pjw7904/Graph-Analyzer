@@ -58,8 +58,9 @@ def calculateClassicalMetricsResults(G):
     results.append(["Symmetry Ratio", symmetryRatio])
 
     #TODO: Based on the paper, this needs to switch to being the transitivity function, not average_clustering
-    averageClusteringCoeff = nx.average_clustering(G)
-    results.append(["Clustering Coefficent (Graph Average)", averageClusteringCoeff])
+    #averageClusteringCoeff = nx.average_clustering(G)
+    averageClusteringCoeff = nx.transitivity(G)
+    results.append(["Clustering Coefficent (Transitivity)", averageClusteringCoeff])
 
     return results
 
@@ -144,6 +145,7 @@ def graphHeterogeneity(G):
     return heterogeneity
 
 
+# Largest eigenvalue of the adjacency matrix
 def graphSpectralRadius(G):
     adjacencyMatrix = nx.to_numpy_matrix(G,dtype=int)
 
