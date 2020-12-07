@@ -36,7 +36,7 @@ def main():
 
     # Meshed Tree Algorithm (MTA) simulation options depending on how it is implemented
     argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex (classic MTA)
-    argParser.add_argument("--numOfVIDs", type = int) # Used with GetVIDs to describe the maximum amount of VIDs to store
+    argParser.add_argument("--numOfVIDs", type=int) # Used with GetVIDs to describe the maximum amount of VIDs to store
     argParser.add_argument("--tuesdayAlgo") # JH version of basic MTA
     argParser.add_argument("--PanAlgo") # YP version of basic MTA 
 
@@ -46,13 +46,6 @@ def main():
     # Parse the arguments
     args = argParser.parse_args()
 
-    #######
-    # NetworkX Graph In Use:
-    # |Type       | Self-Loops | Parallel Edges|
-    # |Undirected | No         | No            |
-    #######
-    G = generateGraph(args.source)
-
     # Structure to hold what metrics the user wants calcuated
     metricOptions = {
         "Classical": args.CalcClassicalMetrics,
@@ -60,7 +53,14 @@ def main():
         "AvgNC": args.CalcAvgNC
     }
 
-    # Compute and print out the metric results
+    #######
+    # NetworkX Graph In Use:
+    # |Type       | Self-Loops | Parallel Edges|
+    # |Undirected | No         | No            |
+    #######
+    G = generateGraph(args.source) # Generate a graph to use for calculations
+
+    # Compute and print out the results of the metric calulations on the generated graph
     computeMetrics(metricOptions, G)
 
     # MTA simulation (version with 3 paths, nothing disjoint):
@@ -81,12 +81,6 @@ def main():
     if(args.PanAlgo):
         nodeSendingCount = MTA.PanAlgo(G, args.PanAlgo)
 
-        for vertex in G:
-            print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
-            for path in G.nodes[vertex]['pathBundle']:
-                print(path)
-            print("===\n")
-        
         print("Sending count: {0}".format(nodeSendingCount))
 
 
@@ -134,8 +128,14 @@ def generateGraph(sourceInput):
     elif(graphFormat == "graphml" and len(sourceInput) == 2):
         G = nx.read_graphml(path=sourceInput[1])
 
+    elif(graphFormat == "random" and len(sourceInput) == 2):
+        hardCodedNumOfNodes = 25
+        probabilityForEdgeCreation = float(sourceInput[1])
+        #G = nx.fast_gnp_random_graph(n=hardCodedNumOfNodes, p=probabilityForEdgeCreation)
+        G = nx.connected_watts_strogatz_graph(n=hardCodedNumOfNodes, k=5, p=probabilityForEdgeCreation, tries=100)
+
     else:
-        sys.exit("Error: invalid source, please try again using RSPEC or graphml")
+        sys.exit("Error: invalid source, please try again using RSPEC, graphml, or random")
 
     return G
 
@@ -160,7 +160,7 @@ def getGENINetworkInfo():
         for neighbor in nodeNeighbors:
             E.append((node, neighbor[1]))
 
-    # Creating a NetworkX graph and adding in the GENI topology information
+    # Create a NetworkX graph and add in the GENI topology information
     G = nx.Graph()
     G.add_nodes_from(V)
     G.add_edges_from(E)
