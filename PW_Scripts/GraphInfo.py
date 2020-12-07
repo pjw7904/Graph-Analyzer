@@ -82,7 +82,7 @@ def main():
         nodeSendingCount = MTA.PanAlgo(G, args.PanAlgo)
 
         print("Sending count: {0}".format(nodeSendingCount))
-
+        print("other:\n{0}".format(nx.get_node_attributes(G, 'updateCounter')))
 
     if(args.GetVIDs):
         G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
@@ -131,11 +131,49 @@ def generateGraph(sourceInput):
     elif(graphFormat == "random" and len(sourceInput) == 2):
         hardCodedNumOfNodes = 25
         probabilityForEdgeCreation = float(sourceInput[1])
-        #G = nx.fast_gnp_random_graph(n=hardCodedNumOfNodes, p=probabilityForEdgeCreation)
-        G = nx.connected_watts_strogatz_graph(n=hardCodedNumOfNodes, k=5, p=probabilityForEdgeCreation, tries=100)
+        G = nx.fast_gnp_random_graph(n=hardCodedNumOfNodes, p=probabilityForEdgeCreation)
+        #G = nx.connected_watts_strogatz_graph(n=hardCodedNumOfNodes, k=5, p=probabilityForEdgeCreation, tries=100)
+
+    elif(graphFormat == "simulation" and len(sourceInput) == 3):
+        hardCodedNumOfNodes = 30
+        probabilityForEdgeCreation = float(sourceInput[1])
+        numOfGraphs = int(sourceInput[2])
+
+        # X and Y axis datapoints in list form
+        graphLabels = [graphNum+1 for graphNum in range(numOfGraphs)]
+        maxDegreeValues = []
+        updateCountValues = []
+        sendingCountValues = []
+
+        finishedGraphs = 0
+        while finishedGraphs != numOfGraphs:
+            G = nx.fast_gnp_random_graph(n=hardCodedNumOfNodes, p=probabilityForEdgeCreation)
+
+            if(nx.is_connected(G)):
+                sortedDegrees = sorted(G.degree, key=lambda degree: degree[1], reverse=False)
+                nodeSendingCount = MTA.PanAlgo(G, 0)
+                
+                maxDegreeValues.append(sortedDegrees[-1][1])
+                updateCountValues.append(max(nx.get_node_attributes(G, 'updateCounter').values()))
+                sendingCountValues.append(max(nodeSendingCount.values()))
+
+                finishedGraphs += 1
+
+        plt.plot(graphLabels, updateCountValues, color='blue', alpha=0.4, marker='o', Label="Updated Counter")
+        plt.plot(graphLabels, sendingCountValues, color='green', alpha=0.4, marker='o', Label="Sending Counter")
+        plt.plot(graphLabels, maxDegreeValues, color='red', linestyle='dashed', label="Max Node Degree")
+        plt.title('Highest Node Degree in Random Graphs', fontsize=14)
+        plt.xlabel('Random Graphs', fontsize=14)
+        plt.ylabel('Max Node Degree', fontsize=14)
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+
+        # max(nx.get_node_attributes(G, 'updateCounter').values())
+        # max(nodeSendingCount.values())
 
     else:
-        sys.exit("Error: invalid source, please try again using RSPEC, graphml, or random")
+        sys.exit("Error: invalid source, please try again using RSPEC, graphml, random, or simulation")
 
     return G
 
