@@ -37,7 +37,7 @@ def main():
     # Meshed Tree Algorithm (MTA) simulation options depending on how it is implemented
     argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex (classic MTA)
     argParser.add_argument("--numOfVIDs", type=int) # Used with GetVIDs to describe the maximum amount of VIDs to store
-    argParser.add_argument("--tuesdayAlgo") # JH version of basic MTA
+    argParser.add_argument("--hamiltonAlgo") # JH version of basic MTA
     argParser.add_argument("--PanAlgo") # YP version of basic MTA 
 
     # Get a visual of the generated graph
@@ -63,9 +63,9 @@ def main():
     # Compute and print out the results of the metric calulations on the generated graph
     computeMetrics(metricOptions, G)
 
-    # MTA simulation (version with 3 paths, nothing disjoint):
-    if(args.tuesdayAlgo):
-        sendingEvents, sendingEvents2 = MTA.tuesdayAlgo(G, args.tuesdayAlgo, 3)
+    # JH MTA simulation (version with 3 paths, nothing disjoint)
+    if(args.hamiltonAlgo):
+        sendingEvents, sendingEvents2 = MTA.hamiltonAlgo(G, args.hamiltonAlgo, 3)
 
         for vertex in G:
             print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
@@ -77,7 +77,7 @@ def main():
         print("sending events 2: {0}".format(sendingEvents2))
         print(len(sendingEvents2))
 
-
+    # YP MTA simulation (version with 3 paths, nothing disjoint)
     if(args.PanAlgo):
         nodeSendingCount = MTA.PanAlgo(G, args.PanAlgo)
 

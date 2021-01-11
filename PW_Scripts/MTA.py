@@ -74,7 +74,7 @@ def runMTASimulation(G, root):
     return
 
 
-def tuesdayAlgo(Graph, source, NP):
+def hamiltonAlgo(Graph, source, NP):
     
     createMeshedTreeDatatStructures(Graph, source) # Every vertex is given a single-character ID (starting with 'A') 
 
