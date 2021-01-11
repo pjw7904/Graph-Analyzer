@@ -244,7 +244,104 @@ def PanAlgo(Graph, root):
     for vertex in Graph:
         logFile.write("{0} ({1})\n\tpath bundle = {2}\n\thop count = {3}\n\tqueue count = {4}\n\tsending count = {5}\n\n"
             .format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], Graph.nodes[vertex]['hopCountValue'], nodeSendingCount[vertex], Graph.nodes[vertex]['updateCounter']))
-    
+
     logFile.close()
 
     return nodeSendingCount
+
+
+def MTA_Jan2021(Graph, root):
+    # Startup tasks
+    logFile = open("algoOutput.txt", "a")
+    topNode = 0
+    createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
+
+    # Assign inital path bundles to each vertex
+    for vertex in Graph:
+        if vertex != root: # Non-root vertices are given an empty path bundle
+            Graph.nodes[vertex]['pathBundle'] = []
+            logFile.write("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
+
+        else: # The root vertex is given a path bundle of itself, which is the only path it will contain
+            Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
+            logFile.write("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
+
+        Graph.nodes[vertex]['updateCounter'] = 0 # Counts the number of times a node has to send an update to a neighbor
+
+    # Queue is based on a list for this implementation test
+    sendingQueue = [root]
+    queueCounter = 0 # coun the number of times the queue has popped an entry
+
+    # Go through the sending process
+    while sendingQueue:
+        v = sendingQueue[topNode] # v is the top node in the sending queue
+
+        # Update meta-information about algorithm sending queue
+        queueCounter += 1
+        logFile.write("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, sendingQueue))
+        logFile.write("SENDING NODE: {0}\nPATH BUNDLE = {1}\n\n".format(v, Graph.nodes[v]['pathBundle']))
+
+        # For each neighbor (x) of the node currently sending an update, send them the path bundle
+        for x in Graph.neighbors(v):
+            if x != root:
+                # Update the log file about the neighbors current situation
+                logFile.write("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
+                logFile.write("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+
+                # (1) delete any path that already contains the local label L(v) and append L(v) to the rest of them
+                pathsReceived = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
+                validPaths = list(dict.fromkeys(pathsReceived))
+
+                # (2) Form a great bundle B(v) by merging the path bundle with the paths from (1)
+                greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=len))
+
+                # (3) remove the preferred path and create a new path bundle with it. Then define a deletion set (deletions that will break the path)
+                preferredPath = greatBundle[0]
+                Graph.nodes[x]['newPathBundle'] = [preferredPath] # the new path bundle with the preferred path
+                # WATCH OUT FOR SHALLOW COPYING HERE AND BELOW
+
+                S = getPathEdgeSet(preferredPath)
+
+                # (4) process as many of the remaining paths in the great bundle as possible
+                processing = True
+                while(processing):
+                    # (i) if GB = null or not null
+                    if greatBundle:
+                        Q = greatBundle[0] # First pat remaining in the great bundle (if it is not empty)
+                        remedySet = getPathEdgeSet(Q)
+                        T = [edge for edge in S if edge not in remedySet]
+
+                        # (ii) if T = null or not null
+                        if not T:
+                            del greatBundle[0]
+                        else:
+                            Graph.nodes[x]['newPathBundle'].append(Q)
+                            S = [edge for edge in S if edge not in T] # S now contains the remaining edges still in need of a remedy
+                        
+                        # (iii) if S = null or not null
+                        if not S:
+                            processing = False
+
+                    else:
+                        processing = False
+
+                # (5) If the new path bundle is different from the previous one, then the vertex must announce the new path bundle to neighbors
+                if Graph.nodes[x]['newPathBundle'] != Graph.nodes[x]['pathBundle']:
+                    sendingQueue.append(x)
+                    sendingQueue.pop(topNode)
+
+                    Graph.nodes[x]['pathBundle'] = Graph.nodes[x]['newPathBundle'] # WATCH FOR SHALLOW COPIES
+    
+    logFile.close()
+
+    return
+
+def getPathEdgeSet(path):
+    edgeSet = list(path)
+
+    for currentEdge in range(1,len(edgeSet)-1):
+        edgeSet[currentEdge] =  edgeSet[currentEdge-1] + edgeSet[currentEdge]
+
+    del edgeSet[0] # removing the first root element that isn't connected to anything upstream
+
+    return edgeSet
