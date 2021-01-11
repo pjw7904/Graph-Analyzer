@@ -142,8 +142,8 @@ def generateGraph(sourceInput):
         # X and Y axis datapoints in list form
         graphLabels = [graphNum+1 for graphNum in range(numOfGraphs)]
         maxDegreeValues = []
-        updateCountValues = []
-        sendingCountValues = []
+        neighborUpdateCounter = []
+        sendingQueueCounter = []
 
         finishedGraphs = 0
         while finishedGraphs != numOfGraphs:
@@ -154,17 +154,17 @@ def generateGraph(sourceInput):
                 nodeSendingCount = MTA.PanAlgo(G, 0)
                 
                 maxDegreeValues.append(sortedDegrees[-1][1])
-                updateCountValues.append(max(nx.get_node_attributes(G, 'updateCounter').values()))
-                sendingCountValues.append(max(nodeSendingCount.values()))
+                neighborUpdateCounter.append(max(nx.get_node_attributes(G, 'updateCounter').values()))
+                sendingQueueCounter.append(max(nodeSendingCount.values()))
 
                 finishedGraphs += 1
 
-        plt.plot(graphLabels, updateCountValues, color='blue', alpha=0.4, marker='o', Label="Updated Counter")
-        plt.plot(graphLabels, sendingCountValues, color='green', alpha=0.4, marker='o', Label="Sending Counter")
+        plt.plot(graphLabels, neighborUpdateCounter, color='blue', alpha=0.4, marker='o', Label="Highest num of neighbors updated")
+        plt.plot(graphLabels, sendingQueueCounter, color='green', alpha=0.4, marker='o', Label="Largest num of queue additions")
         plt.plot(graphLabels, maxDegreeValues, color='red', linestyle='dashed', label="Max Node Degree")
-        plt.title('Highest Node Degree in Random Graphs', fontsize=14)
+        plt.title('Statistics From VID dissemination', fontsize=14)
         plt.xlabel('Random Graphs', fontsize=14)
-        plt.ylabel('Max Node Degree', fontsize=14)
+        plt.ylabel('Count', fontsize=14)
         plt.grid(True)
         plt.legend()
         plt.show()

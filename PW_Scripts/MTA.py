@@ -4,7 +4,6 @@ import copy
 
 def createMeshedTreeDatatStructures(G, root):
     logFile = open("algoOutput.txt", "w")
-
     IDCount = 0
 
     for node in G:
