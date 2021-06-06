@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from heapq import merge 
+from heapq import merge # Merge function implemented for path bundle merging
 import copy
 
 def createMeshedTreeDatatStructures(G, root):
@@ -46,30 +46,6 @@ def createMeshedTreeDatatStructures(G, root):
     print("---------\n")
     logFile.write("---------\n\n")
     logFile.close()
-
-    return
-
-
-def rootActions(G, root):
-    rootConf = G.nodes[root]['rootInfo']
-
-    if(rootConf['state'] == 'F'):
-        print("hi")
-
-        #for nbr in G.neighbors(root):
-            #G.nodes[nbr]['nodeInfo']['inBasket'].extend(G.nodes[root]['rootInfo']['pathBundle'])
-            #print(G.nodes[nbr]['nodeInfo']['inBasket'])
-
-    return
-
-
-def nodeActions():
-
-    return
-
-
-def runMTASimulation(G, root):
-    rootActions(G, root)
 
     return
 
@@ -256,7 +232,7 @@ def MTA_Jan2021(Graph, root):
     topNode = 0
     createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
 
-    # Assign inital path bundles to each vertex
+    # Assign initial path bundles to each vertex
     for vertex in Graph:
         if vertex != root: # Non-root vertices are given an empty path bundle
             Graph.nodes[vertex]['pathBundle'] = []
@@ -270,7 +246,7 @@ def MTA_Jan2021(Graph, root):
 
     # Queue is based on a list for this implementation test
     sendingQueue = [root]
-    queueCounter = 0 # coun the number of times the queue has popped an entry
+    queueCounter = 0 # count the number of times the queue has popped an entry
 
     # Go through the sending process
     while sendingQueue:
@@ -288,36 +264,45 @@ def MTA_Jan2021(Graph, root):
                 logFile.write("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
                 logFile.write("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
-                # (1) delete any path that already contains the local label L(v) and append L(v) to the rest of them
+                # (1) (i) Delete any path that already contains the local label L(v) and (ii) append L(v) to the rest of them
                 pathsReceived = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
-                validPaths = list(dict.fromkeys(pathsReceived))
+                validPaths = list(dict.fromkeys(pathsReceived)) # remove duplicates
+                logFile.write("\tValid paths received: {0}\n".format(validPaths))
 
                 # (2) Form a great bundle B(v) by merging the path bundle with the paths from (1)
-                greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=len))
+                #greatBundle = mergePathBundles(Graph.nodes[x]['pathBundle'], validPaths)
+                greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=lambda x: (len(x), x))) # merge cause duplicates, should I remove them with the same process as above?
+                logFile.write("\tGreat bundle post-merge: {0}\n".format(greatBundle))
 
                 # (3) remove the preferred path and create a new path bundle with it. Then define a deletion set (deletions that will break the path)
                 preferredPath = greatBundle[0]
                 Graph.nodes[x]['newPathBundle'] = [preferredPath] # the new path bundle with the preferred path
+                logFile.write("\tNew path bundle created for step 4: {0}\n".format(Graph.nodes[x]['newPathBundle']))
                 # WATCH OUT FOR SHALLOW COPYING HERE AND BELOW
 
                 S = getPathEdgeSet(preferredPath)
+                logFile.write("\tDeletion set ( S = E(P) ): {0}\n".format(S))
 
                 # (4) process as many of the remaining paths in the great bundle as possible
                 processing = True
                 while(processing):
                     # (i) if GB = null or not null
                     if greatBundle:
-                        Q = greatBundle[0] # First pat remaining in the great bundle (if it is not empty)
+                        Q = greatBundle[0] # First path remaining in the great bundle (if it is not empty)
+                        logFile.write("\tFirst path remaining in great bundle: {0}\n".format(Q))
                         remedySet = getPathEdgeSet(Q)
                         T = [edge for edge in S if edge not in remedySet]
+                        logFile.write("\tRemedy Set ( T = s - E(Q) ): {0}\n".format(T))
 
                         # (ii) if T = null or not null
                         if not T:
                             del greatBundle[0]
                         else:
                             Graph.nodes[x]['newPathBundle'].append(Q)
+                            logFile.write("\tAdding new path: {0}\n".format(Q))
                             S = [edge for edge in S if edge not in T] # S now contains the remaining edges still in need of a remedy
-                        
+                            logFile.write("\tUpdated S for remaining edges in need of a remedy: {0}\n".format(S))
+
                         # (iii) if S = null or not null
                         if not S:
                             processing = False
@@ -327,21 +312,57 @@ def MTA_Jan2021(Graph, root):
 
                 # (5) If the new path bundle is different from the previous one, then the vertex must announce the new path bundle to neighbors
                 if Graph.nodes[x]['newPathBundle'] != Graph.nodes[x]['pathBundle']:
-                    sendingQueue.append(x)
-                    sendingQueue.pop(topNode)
-
                     Graph.nodes[x]['pathBundle'] = Graph.nodes[x]['newPathBundle'] # WATCH FOR SHALLOW COPIES
+                    logFile.write("\tOfficial new path bundle for node: {0}\n".format(Graph.nodes[x]['pathBundle']))
+
+                    if(x not in sendingQueue):
+                        sendingQueue.append(x)
+
+        sendingQueue.pop(topNode)
     
     logFile.close()
+
+    for x in Graph:
+        print(Graph.nodes[x])
+    
 
     return
 
 def getPathEdgeSet(path):
-    edgeSet = list(path)
+    edgeSet = []
 
-    for currentEdge in range(1,len(edgeSet)-1):
-        edgeSet[currentEdge] =  edgeSet[currentEdge-1] + edgeSet[currentEdge]
+    if path:
+        if len(path) <= 2:
+            edgeSet = [path]
 
-    del edgeSet[0] # removing the first root element that isn't connected to anything upstream
+        else:
+            vertexSet = list(path)
+
+            for currentEdge in range(1,len(vertexSet)): #vertexSet-1
+                #edgeSet[currentEdge-1] =  edgeSet[currentEdge-1] + edgeSet[currentEdge]
+                edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
 
     return edgeSet
+
+def mergePathBundles(pathBundle1, pathBundle2):
+    greatBundle = []
+
+    if not pathBundle1 and not pathBundle2:
+       return greatBundle
+
+    elif pathBundle1 and not pathBundle2:
+       return greatBundle + pathBundle1
+
+    elif not pathBundle1 and pathBundle2:
+       return greatBundle + pathBundle2
+
+    elif pathBundle1 and pathBundle2:
+       if (len(pathBundle1[0]) < len(pathBundle2[0])) or (len(pathBundle1[0]) == len(pathBundle2[0]) and pathBundle1[0] < pathBundle2[0]):
+          greatBundle.append(pathBundle1[0])
+          greatBundle = greatBundle +  mergePathBundles(pathBundle1[1:], pathBundle2)
+
+       else:
+          greatBundle.append(pathBundle2[0])
+          greatBundle = greatBundle +  mergePathBundles(pathBundle1, pathBundle2[1:])
+
+    return greatBundle

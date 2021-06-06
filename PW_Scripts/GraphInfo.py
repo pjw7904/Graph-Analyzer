@@ -38,7 +38,8 @@ def main():
     argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex (classic MTA)
     argParser.add_argument("--numOfVIDs", type=int) # Used with GetVIDs to describe the maximum amount of VIDs to store
     argParser.add_argument("--hamiltonAlgo") # JH version of basic MTA
-    argParser.add_argument("--PanAlgo") # YP version of basic MTA 
+    argParser.add_argument("--PanAlgo") # YP version of basic MTA
+    argParser.add_argument("--MTA") # JH version of MTA with remedy paths (01/2021)
 
     # Get a visual of the generated graph
     argParser.add_argument("--ShowPic", action="store_true")
@@ -62,6 +63,10 @@ def main():
 
     # Compute and print out the results of the metric calulations on the generated graph
     computeMetrics(metricOptions, G)
+
+
+    if(args.MTA):
+        MTA.MTA_Jan2021(G, args.MTA) # Just trying it out for now
 
     # JH MTA simulation (version with 3 paths, nothing disjoint)
     if(args.hamiltonAlgo):
