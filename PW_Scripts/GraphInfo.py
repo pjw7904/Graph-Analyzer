@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt # Drawing graphs
 from GENIutils import getConfigInfo # Custom library for GENI functions
 import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
 import MTA # MTA simulation based on John's FSM
+import STA # STA simulation based on IEEE 802.1D-2004, Section 17
 import ClassicalMetrics
 
 '''
@@ -41,6 +42,9 @@ def main():
     argParser.add_argument("--PanAlgo") # YP version of basic MTA
     argParser.add_argument("--MTA") # JH version of MTA with remedy paths (01/2021)
 
+    # IEEE Rapid Spanning Tree Algorithm (Rapid STA) simulation options
+    argParser.add_argument("--STA") # Root pre-designated by adding it as argument
+
     # Get a visual of the generated graph
     argParser.add_argument("--ShowPic", action="store_true")
 
@@ -63,6 +67,10 @@ def main():
 
     # Compute and print out the results of the metric calulations on the generated graph
     computeMetrics(metricOptions, G)
+
+
+    if(args.STA):
+        STA.createGraphPriorityVectors(G, args.STA) # Just trying it out for now
 
 
     if(args.MTA):
