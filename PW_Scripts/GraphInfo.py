@@ -70,7 +70,7 @@ def main():
 
 
     if(args.STA):
-        STA.createGraphPriorityVectors(G, args.STA) # Just trying it out for now
+        STA.RSTA_algo(G, args.STA) # Just trying it out for now
 
 
     if(args.MTA):
