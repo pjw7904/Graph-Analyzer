@@ -30,6 +30,7 @@ DESIGNATED_ROLE = "Designated [FWD]"
 ROOT_ROLE       = "Root [FWD]"
 ALT_ROLE        = "Alternate [BLK]"
 STARTING_ROLE   = "UNDEFINED"
+SYNC_ROLE       = "SYNC"
 
 '''
 Origional Rapid STA priority vector                                                 Modified priority vector
@@ -44,8 +45,9 @@ portInfo = namedtuple("Port_Information", "portVector state")
 
 def createSTADataStructures(Graph, root):
     # Define starting bridge ID information (A bridgeID is normally a MAC address of the bridge, but that doesn't matter here, so it's just an integer)
-    rootBridgeID = 1 # The designated root is always given the lowest bridge ID, just by default.
-    bridgeID = 2
+    rootBridgeID = 0 # The designated root is always given the lowest bridge ID, just by default.
+    bridgeID = 1
+
     startingRPCNonRoot = 999999
     startingRPCRoot = 0
 
@@ -76,15 +78,18 @@ def createSTADataStructures(Graph, root):
     return
 
 
-def updatePortVectors(Graph, node, newVector, rootUpstream):
+def syncPortVectors(Graph, node, newRPC, rootUpstream):
     rootPortName = node + "_" + rootUpstream
+
     for neighbor in Graph.neighbors(node):
         portName = node + "_" + neighbor
 
         if(portName == rootPortName):
-            Graph.nodes[node][portName] = portInfo(newVector, ROOT_ROLE)
+            updatedPortVector = portPriorityVector(newRPC+1, Graph.nodes[rootUpstream]["BridgeID"])
+            Graph.nodes[node][portName] = portInfo(updatedPortVector, ROOT_ROLE)
         else:
-            Graph.nodes[node][portName] = portInfo(newVector, STARTING_ROLE)
+            updatedPortVector = portPriorityVector(newRPC+2, Graph.nodes[node]["BridgeID"])
+            Graph.nodes[node][portName] = portInfo(updatedPortVector, SYNC_ROLE)
 
     return
 
@@ -98,7 +103,7 @@ def RSTA_algo(Graph, root):
     # Go through the sending process
     while sendingQueue:
         v = sendingQueue[topNode] # sender is the top node in the sending queue
-        print("Currently sending STA vector information: {0}".format(v))
+        print("\n==Currently sending STA vector information: {0}==".format(v))
 
         # For each neighbor (x) of the node currently sending an update, send them the best STA vector
         for neighbor in Graph.neighbors(v):
@@ -113,31 +118,34 @@ def RSTA_algo(Graph, root):
             receivedRootPathCost = sender.RootPathCost
             receivedBridgeID = sender.DesignatedBridgeID
 
-            if(receivedRootPathCost < receiver.portVector.RootPathCost or (receivedRootPathCost == receiver.portVector.RootPathCost and receivedBridgeID < receiver.portVector.DesignatedBridgeID)):
+            if(receivedRootPathCost+1 < receiver.portVector.RootPathCost or (receivedRootPathCost+1 == receiver.portVector.RootPathCost and receivedBridgeID < receiver.portVector.DesignatedBridgeID)):
                 print("Vector {0} from {1} is SUPERIOR to current port vector {2}".format(sender, v, receiver.portVector))
                 updatedRole = ALT_ROLE
                 updatedPortVector = portPriorityVector(receivedRootPathCost+1, Graph.nodes[v]["BridgeID"])
+                Graph.nodes[neighbor][receivingPort] = portInfo(updatedPortVector, updatedRole)
+                print("current {0} message vector: {1}".format(neighbor, receiverMsgVector))
 
-                if(sender.RootPathCost < receiverMsgVector.RootPathCost):
+                if(receivedRootPathCost < receiverMsgVector.RootPathCost):
                     print("Vector {0} from {1} is the new message vector for {2}".format(sender, v, neighbor))
-                    updatedRole = ROOT_ROLE
                     updatedPortVector = portPriorityVector(receivedRootPathCost+1, Graph.nodes[neighbor]["BridgeID"])
                     Graph.nodes[neighbor]["messagePriorityVector"] = updatedPortVector
-
-                    updatePortVectors(Graph, neighbor, updatedPortVector, v)
+                    syncPortVectors(Graph, neighbor, receivedRootPathCost, v)
 
                 if(neighbor not in sendingQueue):
                     sendingQueue.append(neighbor)
-                    print("+++++++++++++++++++{0} added to sending queue".format(neighbor))
-                
-                Graph.nodes[neighbor][receivingPort] = portInfo(updatedPortVector, updatedRole)
+                    print("{0} added to sending queue".format(neighbor))
 
-            elif(receivedRootPathCost > receiver.portVector.RootPathCost or (receivedRootPathCost == receiver.portVector.RootPathCost and receivedBridgeID > receiver.portVector.DesignatedBridgeID)):
-                print("Vector {0} from {1} is INFERIOR to current port vector {2}".format(sender, v, receiver.portVector))
-                updatedRole = DESIGNATED_ROLE
-                updatedPortVector = portPriorityVector(receiver.portVector.RootPathCost, Graph.nodes[neighbor]["BridgeID"])
+            elif((receivedRootPathCost+1 > receiver.portVector.RootPathCost) or (receivedRootPathCost+1 == receiver.portVector.RootPathCost and receivedBridgeID > receiver.portVector.DesignatedBridgeID)):
+                if(receiver.state != DESIGNATED_ROLE):
+                    print("Vector {0} from {1} is INFERIOR to current port vector {2}".format(sender, v, receiver.portVector))
+                    
+                    updatedRole = DESIGNATED_ROLE
+                    updatedPortVector = portPriorityVector(receiver.portVector.RootPathCost, Graph.nodes[neighbor]["BridgeID"])
+                    Graph.nodes[neighbor][receivingPort] = portInfo(updatedPortVector, updatedRole)
 
-                Graph.nodes[neighbor][receivingPort] = portInfo(updatedPortVector, updatedRole)
+                    if(neighbor not in sendingQueue):
+                        sendingQueue.append(neighbor)
+                        print("+++++++++++++++++++{0} added to sending queue".format(neighbor))
 
         sendingQueue.pop(topNode)
 
