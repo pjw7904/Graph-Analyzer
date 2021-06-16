@@ -24,6 +24,10 @@ Outline:
     - The set of all spanning tree priority vectors is totally ordered, a lower-valued priority vector component is superior, and earlier components in the vector are superior.
 ==========================='''
 from collections import namedtuple
+from tabulate import tabulate
+
+# Location/name of the log file
+LOG_FILE = "RSTA_Output.txt"
 
 # Port Role [state]. Setup: [ NODE [port]]------link------[[port] NODE ]
 DESIGNATED_ROLE = "Designated [FWD]" # Superior port on link, forwards traffic, always one on each link
@@ -50,6 +54,8 @@ portInfo   = namedtuple("Port_Information", "portVector state")
 
 # Gives each node the required data structures, including a vector and state for each port
 def createSTADataStructures(Graph, root):
+    logOutput = [] # Structure to hold output
+
     # Starting Bridge IDs (BID), depending on node type (root or non-root)
     rootBridgeID = 0
     bridgeID     = 1
@@ -58,6 +64,10 @@ def createSTADataStructures(Graph, root):
     startingRPCNonRoot = 999999 # This is not present in the algorithm, it's my own addition
     startingRPCRoot    = 0
 
+    # Graph-wide metrics defined
+    Graph.graph["senderCount"] = 0 # Number of times a node has a turn to send
+    Graph.graph["neededUpdateCount"] = 0
+
     # For each node in the graph, give them an appropriate BID
     for node in Graph:
         if(node != root):
@@ -65,6 +75,10 @@ def createSTADataStructures(Graph, root):
             bridgeID += 1
         else:
             Graph.nodes[node]["BID"] = rootBridgeID
+        
+        # Log name-BID info for log file
+        logNodeInfo = [node,  Graph.nodes[node]["BID"]]
+        logOutput.append(logNodeInfo)
 
         # For each port on each node, add starting port vector based on defined starting defaults
         for neighboringNode in Graph.neighbors(node):
@@ -84,12 +98,15 @@ def createSTADataStructures(Graph, root):
         # Add starting root vector (vector of upstream node), which is the same as the starting port vectors
         Graph.nodes[node]["rootVector"] = startingPortVector
     
-    return
+    return logOutput
 
 # The logic and simulation of the Rapid Spanning Tree Algorithm
 def RSTA_algo(Graph, root):
+    logFile = open(LOG_FILE, "w")
+
     # Define starting/default Bridge ID and port, message, and root vectors for each node
-    createSTADataStructures(Graph, root)
+    nodeBIDInfo = createSTADataStructures(Graph, root)
+    logRSTAEvent("{Header}\n{Results}\n\n".format(Header="Node Bridge IDs", Results=tabulate(nodeBIDInfo, headers=["Node", "BID"], numalign="right", floatfmt=".4f")), logFile)
 
     # Startup values
     topNode = 0
@@ -97,11 +114,13 @@ def RSTA_algo(Graph, root):
 
     # Begin transmission/simulaiton
     while sendingQueue:
+        Graph.graph["senderCount"] += 1
+
         # Get sender/transmitter information
         sender = sendingQueue[topNode] # sender is the top node in the sending queue
         sender_MsgVector = Graph.nodes[sender]["msgVector"]
 
-        logRSTAEvent("Current sender: {0} | Msg vector: {1}".format(sender, sender_MsgVector), 1)
+        logRSTAEvent("---------\n({0}) Current sender: {0} | Msg vector: {1}\n".format(Graph.graph["senderCount"], sender, sender_MsgVector), logFile)
 
         # For each neighbor of the sender
         for receiver in Graph.neighbors(sender):
@@ -112,65 +131,70 @@ def RSTA_algo(Graph, root):
             receiver_RootVector = Graph.nodes[receiver]["rootVector"]
             receiver_MsgVector = Graph.nodes[receiver]["msgVector"]
 
-            logRSTAEvent("Receiving msg vector: {0} | Port vector: {1} | Root vector: {2}"
-                         .format(receiver, receiver_PortVector, receiver_RootVector), 2)
+            receiverInfo = "{0} - {1}: ".format(receiver, recvPort)
 
             # If the sent message vector is SUPERIOR to the receiver port vector
             if(senderVectorIsSuperior(sender_MsgVector, receiver_PortVector)):
-                logRSTAEvent("sender vector is superior to receiver port vector", 2)
+                Graph.graph["neededUpdateCount"] += 1
 
                 # If the sent message vector is also superior to the receiver root vector
                 if(senderVectorIsSuperior(sender_MsgVector, receiver_RootVector)):
+                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["neededUpdateCount"], receiver_PortInfo.state, ROOT_ROLE)
                     # Make the receiving port a root + fwding port, change all other ports to sync
                     syncVectors(Graph, sender_MsgVector, receiver, recvPort)
-                    logRSTAEvent("sender vector is superior to receiver root vector", 3)
                     addToSendingQueue(sendingQueue, receiver)
                 
                 # If the root vector on the receiver is still superior
                 else:
+                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["neededUpdateCount"], receiver_PortInfo.state, ALT_ROLE)
                     # Make the receiving port an alternate + blocking port
                     updatedPortVector = RSTAVector(sender_MsgVector.RootPathCost+1, 
                                         sender_MsgVector.DesignatedBridgeID) # RPC + 1 for received link cost
                     Graph.nodes[receiver][recvPort] = portInfo(updatedPortVector, ALT_ROLE)
-                    logRSTAEvent("sender vector is inferior to receiver root vector", 3)
                     addToSendingQueue(sendingQueue, receiver)
 
             # If the sent message vector is IDENTICAL to the receiver port vector, ignore it
             elif(senderVectorIsIdentical(sender_MsgVector, receiver_PortVector)):
-                logRSTAEvent("vectors are identical", 2)
+                receiverInfo += "No change, identical vectors\n"
             
             # If the sent message vector is INFERIOR to the receiver port vector
             elif(not senderVectorIsSuperior(sender_MsgVector, receiver_PortVector)):
-                logRSTAEvent("sender vector is inferior to receiver port vector", 2)
 
                 # If the receiver port role is already designated, ignore it
                 if(receiver_PortInfo.state == DESIGNATED_ROLE):
-                    logRSTAEvent("receiving port is already in designated state", 2)
+                    receiverInfo += "No change, already designated\n"
 
                 # Otherwise, move the port to the designated + fwding role
                 else:
-                    logRSTAEvent("receiving port moved to designated state", 2)
+                    Graph.graph["neededUpdateCount"] += 1
+                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["neededUpdateCount"], receiver_PortInfo.state, DESIGNATED_ROLE)
                     Graph.nodes[receiver][recvPort] = portInfo(receiver_PortVector, DESIGNATED_ROLE)
                     addToSendingQueue(sendingQueue, receiver)
 
             # Catch-all for vector comparision issues
             else:
-                logRSTAEvent("vector parsing error", 2)
+                receiverInfo += "Vector parsing error\n"
+
+            logRSTAEvent(receiverInfo, logFile)
 
         # Sender is finished, pop it off the sending queue
         sendingQueue.pop(topNode)
 
-    # Simulation finished
-    logRSTAEvent("SIMULATION COMPLETE", 1)
-    printAltPorts(Graph, DESIGNATED_ROLE)
+    # Simulation results and cleanup
+    finalPortRoles = getPortInfo(Graph)
+    finalCountingStats = "\nSender count: {0}\nNeeded Updated Count: {1}".format(Graph.graph["senderCount"], Graph.graph["neededUpdateCount"])
+    logRSTAEvent("\n=====RESULT=====\n" + finalPortRoles, logFile)
+    logRSTAEvent(finalCountingStats, logFile)
+
+    logFile.close()
 
     return
+
 
 # Add a given node to the sending queue if it isn't there already
 def addToSendingQueue(sendingQueue, node):
     if(node not in sendingQueue):
         sendingQueue.append(node)
-        logRSTAEvent("{0} added to sending queue".format(node), 2)
 
     return
 
@@ -219,19 +243,22 @@ def syncVectors(Graph, superiorVector, node, newRootPort):
 
     return
 
+
 # Log a given RSTA event
-def logRSTAEvent(eventMsg, depth):
-    print(depth * "*" + eventMsg)
+def logRSTAEvent(eventMsg, logFile):
+    logFile.write(eventMsg)
+
+    return
 
 
 # Print out RSTA graph information
-def printAltPorts(Graph, portType):
+def getPortInfo(Graph):
+    output = ""
+
     for node in Graph:
-        print("\n", node)
+        output += "\n{0}\n".format(node)
         for neighbor in Graph.neighbors(node):
             port = node + "_" + neighbor
+            output += "\t{0} - {1}\n".format(port, Graph.nodes[node][port].state)
 
-            if(Graph.nodes[node][port].state == portType):
-                print(port)
-
-    return
+    return output
