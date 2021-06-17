@@ -18,6 +18,7 @@ from GENIutils import getConfigInfo # Custom library for GENI functions
 import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
 import MTA # MTA simulation based on John's FSM
 import STA # STA simulation based on IEEE 802.1D-2004, Section 17
+import DA # Dijkstra's algorithm simulation
 import ClassicalMetrics
 
 '''
@@ -45,6 +46,9 @@ def main():
     # IEEE Rapid Spanning Tree Algorithm (Rapid STA) simulation options
     argParser.add_argument("--STA") # Root pre-designated by adding it as argument
 
+    # Dijkstra's Algorithm
+    argParser.add_argument("--DA") # Argument of the root of the SPT
+
     # Get a visual of the generated graph
     argParser.add_argument("--ShowPic", action="store_true")
 
@@ -68,13 +72,16 @@ def main():
     # Compute and print out the results of the metric calulations on the generated graph
     computeMetrics(metricOptions, G)
 
-
+    # Running the algorithms in their most up-to-date form:
     if(args.STA):
-        STA.RSTA_algo(G, args.STA) # Just trying it out for now
-
+        STA.RSTA_algo(G, args.STA)
 
     if(args.MTA):
-        MTA.MTA_Jan2021(G, args.MTA) # Just trying it out for now
+        MTA.MTA_Jan2021(G, args.MTA)
+
+    if(args.DA):
+        DA.DA(G, args.DA)
+
 
     # JH MTA simulation (version with 3 paths, nothing disjoint)
     if(args.hamiltonAlgo):
