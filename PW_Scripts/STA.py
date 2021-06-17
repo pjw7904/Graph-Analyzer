@@ -65,7 +65,7 @@ def createSTADataStructures(Graph, root):
     startingRPCRoot    = 0
 
     # Graph-wide metrics defined
-    Graph.graph["senderCount"] = 0 # Number of times a node has a turn to send
+    Graph.graph["RSTA"] = 0 # Number of times a node has a turn to send
     Graph.graph["neededUpdateCount"] = 0
 
     # For each node in the graph, give them an appropriate BID
@@ -102,6 +102,8 @@ def createSTADataStructures(Graph, root):
 
 # The logic and simulation of the Rapid Spanning Tree Algorithm
 def RSTA_algo(Graph, root):
+    Graph.graph["RSTA"] = 0 # count number of iterations needed
+
     logFile = open(LOG_FILE, "w")
 
     # Define starting/default Bridge ID and port, message, and root vectors for each node
@@ -114,13 +116,13 @@ def RSTA_algo(Graph, root):
 
     # Begin transmission/simulaiton
     while sendingQueue:
-        Graph.graph["senderCount"] += 1
+        Graph.graph["RSTA"] += 1
 
         # Get sender/transmitter information
         sender = sendingQueue[topNode] # sender is the top node in the sending queue
         sender_MsgVector = Graph.nodes[sender]["msgVector"]
 
-        logRSTAEvent("---------\n({0}) Current sender: {0} | Msg vector: {1}\n".format(Graph.graph["senderCount"], sender, sender_MsgVector), logFile)
+        logRSTAEvent("---------\n({0}) Current sender: {1} | Msg vector: {2}\n".format(Graph.graph["RSTA"], sender, sender_MsgVector), logFile)
 
         # For each neighbor of the sender
         for receiver in Graph.neighbors(sender):
@@ -182,7 +184,7 @@ def RSTA_algo(Graph, root):
 
     # Simulation results and cleanup
     finalPortRoles = getPortInfo(Graph)
-    finalCountingStats = "\nSender count: {0}\nNeeded Updated Count: {1}".format(Graph.graph["senderCount"], Graph.graph["neededUpdateCount"])
+    finalCountingStats = "\nSender count: {0}\nNeeded Updated Count: {1}".format(Graph.graph["RSTA"], Graph.graph["neededUpdateCount"])
     logRSTAEvent("\n=====RESULT=====\n" + finalPortRoles, logFile)
     logRSTAEvent(finalCountingStats, logFile)
 

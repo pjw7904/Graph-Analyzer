@@ -52,6 +52,9 @@ def main():
     # Get a visual of the generated graph
     argParser.add_argument("--ShowPic", action="store_true")
 
+    # Get figures/plots of data collected
+    argParser.add_argument("--stats", action="store_true")
+
     # Parse the arguments
     args = argParser.parse_args()
 
@@ -72,15 +75,31 @@ def main():
     # Compute and print out the results of the metric calulations on the generated graph
     computeMetrics(metricOptions, G)
 
+    # Define structures to collect X and Y axis info for statistics
+    xAxisLabels = []
+    yAxisValues = []
+
     # Running the algorithms in their most up-to-date form:
     if(args.STA):
         STA.RSTA_algo(G, args.STA)
+        xAxisLabels.append("RSTA")
+        yAxisValues.append(G.graph["RSTA"])
 
     if(args.MTA):
         MTA.MTA_Jan2021(G, args.MTA)
+        xAxisLabels.append("MTA")
+        yAxisValues.append(G.graph["MTA"])
 
     if(args.DA):
         DA.DA(G, args.DA)
+        xAxisLabels.append("DA")
+        yAxisValues.append(G.graph["DA"])
+
+    if(args.stats):
+        fig = plt.figure()
+        plt.bar(xAxisLabels,yAxisValues)
+        plt.title("Iterations to Complete Algorithm")
+        plt.show()
 
 
     # JH MTA simulation (version with 3 paths, nothing disjoint)

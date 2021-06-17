@@ -4,6 +4,8 @@ DIJKSTRA'S ALGORITHM
 from networkx import get_node_attributes
 
 def DA(Graph, source):
+    Graph.graph["DA"] = 0 # count number of iterations needed
+
     EDGE_COST = 1 # graphs are unweighted, all edges have a cost of 1
 
     Graph.nodes[source]["dist"] = 0 # Assign the root/source the distance value 0 because you don't need to go anyway to get to it (you start there)
@@ -18,6 +20,8 @@ def DA(Graph, source):
 
     # while Q is not empty, meaning there are still more nodes that haven't been discovered/marked
     while Q:
+        Graph.graph["DA"] += 1
+
         # get the node with the lowest distance value, which starts with the root/source
         v = min(Q, key=Q.get)
 
