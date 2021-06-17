@@ -1,117 +1,220 @@
 #!/usr/bin/env python
-from GENIutils import *         # Custom library for GENI functions
-from tabulate  import tabulate  # External Python library (Anaconda provided) for printing formatted ASCII tables
-import networkx          as nx  # External Python library (Anaconda provided) for graph creation and analysis
-import numpy             as np  # External Python library (Anaconda provided) for all thinks linear algebra, matricies, etc and efficent memory usage compared to Py lists
-import matplotlib.pyplot as plt # External Python library (Anaconda provided) for drawing graphs
-import statistics               # Python Standard Library for calculating mathematical statistics of numeric (Real-valued) data
-import math                     # Python Standard Library for access to the mathematical functions defined by the C standard.
 
+# Standard modules
+import statistics # Calculating mathematical statistics of numeric (Real-valued) data
+import math # Access to the mathematical functions defined by the C standard.
+import argparse # Parsing command-line arguments
+import configparser # Parsing configuration file arguments
+import sys
+
+# External modules
+from tabulate import tabulate # Printing formatted ASCII tables
+import networkx as nx # Graph creation and analysis
+import numpy as np # For all thinks linear algebra, matricies, etc and efficent memory usage compared to Py lists
+import matplotlib.pyplot as plt # Drawing graphs
+
+# Custom modules
+from GENIutils import getConfigInfo # Custom library for GENI functions
+import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
+import MTA # MTA simulation based on John's FSM
+import STA # STA simulation based on IEEE 802.1D-2004, Section 17
+import DA # Dijkstra's algorithm simulation
+import ClassicalMetrics
+
+'''
+Start of program
+'''
 def main():
-    userInput = input("GENI Addr Info (1) | Random Graph (2) | Custom Selections (3): ") # Get user input
+    # ArgumentParser object to read in command-line arguments
+    argParser = argparse.ArgumentParser(description="Graph Theory Analysis Script")
+
+    # The source of the graph
+    argParser.add_argument("-s", "--source", nargs='*')
+
+    # Calculating graph metrics
+    argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
+    argParser.add_argument("--CalcBC", action="store_true") # Compute betweenness centrality for each vertex
+    argParser.add_argument("--CalcAvgNC", action="store_true")
+
+    # Meshed Tree Algorithm (MTA) simulation options depending on how it is implemented
+    argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex (classic MTA)
+    argParser.add_argument("--numOfVIDs", type=int) # Used with GetVIDs to describe the maximum amount of VIDs to store
+    argParser.add_argument("--hamiltonAlgo") # JH version of basic MTA
+    argParser.add_argument("--PanAlgo") # YP version of basic MTA
+    argParser.add_argument("--MTA") # JH version of MTA with remedy paths (01/2021)
+
+    # IEEE Rapid Spanning Tree Algorithm (Rapid STA) simulation options
+    argParser.add_argument("--STA") # Root pre-designated by adding it as argument
+
+    # Dijkstra's Algorithm
+    argParser.add_argument("--DA") # Argument of the root of the SPT
+
+    # Get a visual of the generated graph
+    argParser.add_argument("--ShowPic", action="store_true")
+
+    # Get figures/plots of data collected
+    argParser.add_argument("--stats", action="store_true")
+
+    # Parse the arguments
+    args = argParser.parse_args()
+
+    # Structure to hold what metrics the user wants calcuated
+    metricOptions = {
+        "Classical": args.CalcClassicalMetrics,
+        "BC": args.CalcBC,
+        "AvgNC": args.CalcAvgNC
+    }
 
     #######
-    # NetworkX Graph:
+    # NetworkX Graph In Use:
     # |Type       | Self-Loops | Parallel Edges|
-    # |undirected | No         | No            |
+    # |Undirected | No         | No            |
     #######
-    G = nx.Graph()
+    G = generateGraph(args.source) # Generate a graph to use for calculations
 
-    # If user picks 1, read and analyze a graph created in GENI
-    if(userInput == "1"):
-        G = getGENINetworkInfo()
+    # Compute and print out the results of the metric calulations on the generated graph
+    computeMetrics(metricOptions, G)
 
-    # If user picks 2, analyze a selection of graphs that I or someone else think is interesting
-    elif(userInput == "2"):
-        # TBA once sturcture is fully formed
-        print("TBA")
+    # Define structures to collect X and Y axis info for statistics
+    xAxisLabels = []
+    yAxisValues = []
 
-    # If user picks 3, read and analyze a graph from a graph-supported file type
-    elif(userInput == "3"):
-        # TBA once sturcture is fully formed
-        print("TBA")
+    # Running the algorithms in their most up-to-date form:
+    if(args.STA):
+        STA.RSTA_algo(G, args.STA)
+        xAxisLabels.append("RSTA")
+        yAxisValues.append(G.graph["RSTA"])
 
-    # Calculate metric results based on the appropriate graph theory algorithms included
-    results,betweennessCentrality,avgNeighborConnectivity = calculateMetricsResults(G)
+    if(args.MTA):
+        MTA.MTA_Jan2021(G, args.MTA)
+        xAxisLabels.append("MTA")
+        yAxisValues.append(G.graph["MTA"])
 
-    # Use Tabulate to print results in a clean table format
-    print(tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f"))
-    print(tabulate(betweennessCentrality, headers=["Node", "Results"], numalign="right", floatfmt=".4f"))
-    print(tabulate(avgNeighborConnectivity, headers=["Degree", "Results"], numalign="right", floatfmt=".4f"))
+    if(args.DA):
+        DA.DA(G, args.DA)
+        xAxisLabels.append("DA")
+        yAxisValues.append(G.graph["DA"])
 
-    # Draw a picture of the graph and present it to the user in a seperate GUI window
-    nx.draw(G, with_labels=True, font_weight='bold')
-    plt.show()
+    if(args.stats):
+        fig = plt.figure()
+        plt.bar(xAxisLabels,yAxisValues)
+        plt.title("Iterations to Complete Algorithm")
+        plt.show()
+
+
+    # JH MTA simulation (version with 3 paths, nothing disjoint)
+    if(args.hamiltonAlgo):
+        sendingEvents, sendingEvents2 = MTA.hamiltonAlgo(G, args.hamiltonAlgo, 3)
+
+        for vertex in G:
+            print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
+            for path in G.nodes[vertex]['pathBundle']:
+                print(path)
+            print("===\n")
+
+        print(sendingEvents)
+        print("sending events 2: {0}".format(sendingEvents2))
+        print(len(sendingEvents2))
+
+    # YP MTA simulation (version with 3 paths, nothing disjoint)
+    if(args.PanAlgo):
+        nodeSendingCount = MTA.PanAlgo(G, args.PanAlgo)
+
+        print("Sending count: {0}".format(nodeSendingCount))
+        print("other:\n{0}".format(nx.get_node_attributes(G, 'updateCounter')))
+
+    if(args.GetVIDs):
+        G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
+
+        MT_root = args.GetVIDs # The root of the meshed tree
+        numOfVIDs = None
+
+        if(args.numOfVIDs):
+            numOfVIDs = args.numOfVIDs
+
+        possibleVIDs = {}
+        PVID         = {}
+
+        MT_VIDs_Utils.createMeshedTreeTable(G_MT)
+        MT_VIDs_Utils.addInterfaceNums(G_MT)
+
+        # Generating the possible VIDs from each non-root node
+        for currentNode in G_MT:
+            possibleVIDs, PVID = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode, numOfVIDs=numOfVIDs)
+            G_MT.nodes[currentNode]['VIDTable'].update(possibleVIDs)
+            G_MT.nodes[currentNode]['PVID'].update(PVID)
+
+        #PVIDColors = nx.get_node_attributes(G_MT, "PVID")
+        #activeLinks = [list(PVIDColors[node].keys())[0] for node in G_MT.nodes if node != MT_root]
+        #colorBroadcastTree = ['black' if e in activeLinks else 'white' for e in G_MT.edges]
+        #nx.draw(G_MT, with_labels=True, edge_color=colorBroadcastTree, font_weight='bold', labels = PVIDColors)
+        #plt.show()
+
+    if(args.ShowPic):
+        nx.draw(G, with_labls=True)
+        plt.show()
 
     # End of script
     return
 
 
-def calculateMetricsResults(G):
-    # Collect results for output
-    results     = []
-    BC_results  = []
-    ANC_results = []
+def generateGraph(sourceInput):
+    graphFormat = sourceInput[0]
 
-    # Get other graph-related information
-    numOfVerticies = G.number_of_nodes()
-    results.append(["Number of verticies", numOfVerticies])
+    if(graphFormat == "RSPEC"):
+        G = getGENINetworkInfo()
 
-    numOfEdges = G.number_of_edges()
-    results.append(["Number of edges", numOfEdges])
+    elif(graphFormat == "graphml" and len(sourceInput) == 2):
+        G = nx.read_graphml(path=sourceInput[1])
 
-    connectionStatus = nx.is_connected(G)
-    results.append(["Is the graph connected (parsial mesh/A2TR)", connectionStatus])
+    elif(graphFormat == "random" and len(sourceInput) == 2):
+        hardCodedNumOfNodes = 25
+        probabilityForEdgeCreation = float(sourceInput[1])
+        G = nx.fast_gnp_random_graph(n=hardCodedNumOfNodes, p=probabilityForEdgeCreation)
+        #G = nx.connected_watts_strogatz_graph(n=hardCodedNumOfNodes, k=5, p=probabilityForEdgeCreation, tries=100)
 
-    nodeConnectivity = nx.node_connectivity(G)
-    results.append(["Node Connectivity", nodeConnectivity])
+    elif(graphFormat == "simulation" and len(sourceInput) == 3):
+        hardCodedNumOfNodes = 30
+        probabilityForEdgeCreation = float(sourceInput[1])
+        numOfGraphs = int(sourceInput[2])
 
-    linkConnectivity = nx.edge_connectivity(G)
-    results.append(["Link Connectivity", linkConnectivity])
+        # X and Y axis datapoints in list form
+        graphLabels = [graphNum+1 for graphNum in range(numOfGraphs)]
+        maxDegreeValues = []
+        neighborUpdateCounter = []
+        sendingQueueCounter = []
 
-    algebraicConnectivity = nx.algebraic_connectivity(G)
-    results.append(["Algebraic Connectivity", algebraicConnectivity])
+        finishedGraphs = 0
+        while finishedGraphs != numOfGraphs:
+            G = nx.fast_gnp_random_graph(n=hardCodedNumOfNodes, p=probabilityForEdgeCreation)
 
-    graphDiameter = nx.diameter(G)
-    results.append(["Diameter", graphDiameter])
+            if(nx.is_connected(G)):
+                sortedDegrees = sorted(G.degree, key=lambda degree: degree[1], reverse=False)
+                nodeSendingCount = MTA.PanAlgo(G, 0)
+                
+                maxDegreeValues.append(sortedDegrees[-1][1])
+                neighborUpdateCounter.append(max(nx.get_node_attributes(G, 'updateCounter').values()))
+                sendingQueueCounter.append(max(nodeSendingCount.values()))
 
-    avgShortestPathLength = nx.average_shortest_path_length(G)
-    results.append(["Average Shortest Path Length", avgShortestPathLength])
+                finishedGraphs += 1
 
-    assortativityCoefficient = nx.degree_pearson_correlation_coefficient(G)
-    results.append(["Assortativity Coefficient", assortativityCoefficient])
+        plt.plot(graphLabels, neighborUpdateCounter, color='blue', alpha=0.4, marker='o', Label="Highest num of neighbors updated")
+        plt.plot(graphLabels, sendingQueueCounter, color='green', alpha=0.4, marker='o', Label="Largest num of queue additions")
+        plt.plot(graphLabels, maxDegreeValues, color='red', linestyle='dashed', label="Max Node Degree")
+        plt.title('Statistics From VID dissemination', fontsize=14)
+        plt.xlabel('Random Graphs', fontsize=14)
+        plt.ylabel('Count', fontsize=14)
+        plt.grid(True)
+        plt.legend()
+        plt.show()
 
-    completeStatus = graphIsComplete(G)
-    results.append(["Is the graph complete (full mesh)", completeStatus])
+        # max(nx.get_node_attributes(G, 'updateCounter').values())
+        # max(nodeSendingCount.values())
 
-    numOfSpanningTrees = SpanningTreeCount(G)
-    results.append(["Number of Possible Spanning Trees", numOfSpanningTrees])
+    else:
+        sys.exit("Error: invalid source, please try again using RSPEC, graphml, random, or simulation")
 
-    averageNodeDegree = graphDegreeAverage(G)
-    results.append(["Average Nodal Degree", averageNodeDegree])
-
-    heterogeneity = graphHeterogeneity(G)
-    results.append(["Heterogeneity", heterogeneity])
-
-    spectralRadius = graphSpectralRadius(G)
-    results.append(["Spectral Radius (largest eigenvalue)", spectralRadius])
-
-    symmetryRatio = graphSymmetryRatio(G)
-    results.append(["Symmetry Ratio", symmetryRatio])
-
-    #TODO: Based on the paper, this needs to switch to being the transitivity function, not average_clustering
-    averageClusteringCoeff   = nx.average_clustering(G)
-    results.append(["Clustering Coefficent (Graph Average)", averageClusteringCoeff])
-
-    betweennessCentrality = nx.betweenness_centrality(G)
-    for key, value in betweennessCentrality.items():
-        BC_results.append([key,value])
-
-    avgNeighborConnectivity = nx.average_degree_connectivity(G)
-    for key, value in avgNeighborConnectivity.items():
-        ANC_results.append([key,value])
-
-    return results, BC_results, ANC_results
+    return G
 
 
 def getGENINetworkInfo():
@@ -134,106 +237,35 @@ def getGENINetworkInfo():
         for neighbor in nodeNeighbors:
             E.append((node, neighbor[1]))
 
-    # Creating a NetworkX graph and adding in the GENI topology information
+    # Create a NetworkX graph and add in the GENI topology information
     G = nx.Graph()
     G.add_nodes_from(V)
     G.add_edges_from(E)
 
+    # Write this graph to a graphml file to be reused later on
+    fileName = input("Graph name: ")
+    nx.write_graphml(G=G, path=fileName + ".graphml", prettyprint=True)
+    print("Note: graph {0} has been converted to a graphml file named {1}. It is saved in the current directory."
+        .format(fileName, fileName + ".graphml"))
+
     return G
 
-# Kirchhoff's matrix tree theorem is implemented to count the number of spanning trees
-def SpanningTreeCount(G):
-    treeCount = 0
 
-    laplacianMatrix = nx.laplacian_matrix(G).toarray()
-    laplacianSubMatrix = np.delete(laplacianMatrix, 0, 0)
-    laplacianSubMatrix = np.delete(laplacianSubMatrix, 0, 1)
+def computeMetrics(calcOptions, G):
+    if(calcOptions["Classical"]):
+        # Calculate metric results based on the appropriate graph theory algorithms included and display them with Tabulate
+        results = ClassicalMetrics.calculateClassicalMetricsResults(G)
+        print("{Header}\n{Results}\n".format(Header="____CLASSICAL METRICS____", Results=tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f")))
 
-    treeCount = np.linalg.det(laplacianSubMatrix)
+    if(calcOptions["BC"]):
+        results = ClassicalMetrics.calculatePerNodeBetweennessCentrality(G)
+        print("{Header}\n{Results}\n".format(Header="____BETWEENNESS CENTRALITY____", Results=tabulate(results, headers=["Node", "Results"], numalign="right", floatfmt=".4f")))
 
-    return treeCount
+    if(calcOptions["AvgNC"]):
+        results = ClassicalMetrics.calculatePerDegreeAvgNeighborConnectivity(G)
+        print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
 
-# Checking if the graph is complete / fully meshed
-def graphIsComplete(G):
-    isCompleteGraph = False
-
-    numOfVerticies = G.number_of_nodes()
-    numOfEdges = G.number_of_edges()
-
-    if(numOfEdges == numOfVerticies-1):
-        isCompleteGraph = True
-
-    return isCompleteGraph
-
-
-# Written with possible directed graphs in mind, otherwise avg = 2m/n for undirected graphs
-def graphDegreeAverage(G):
-    average = 0
-    edgeSum = 0
-
-    numOfVerticies = G.number_of_nodes()
-
-    for V in G:
-        edgeSum += G.degree(V)
-
-    average = edgeSum / numOfVerticies
-
-    return average
-
-def graphHeterogeneity(G):
-    heterogeneity = 0
-    nodeDegrees = []
-    numOfVerticies = G.number_of_nodes()
-    averageNodeDegree = graphDegreeAverage(G)
-
-    for V in G:
-        nodeDegrees.append(G.degree(V))
-    standardDev = math.sqrt(statistics.variance(nodeDegrees))
-
-    heterogeneity = standardDev/averageNodeDegree
-
-    return heterogeneity
-
-
-def graphSpectralRadius(G):
-    adjacencyMatrix = nx.to_numpy_matrix(G,dtype=int)
-
-    eigVals = np.linalg.eigvals(adjacencyMatrix)
-    eigVals = set(eigVals)
-
-    spectralRadius = sorted(eigVals)[-1]
-
-    return spectralRadius
-
-
-def graphSymmetryRatio(G):
-    symmetryRatio = 0
-
-    adjacencyMatrix = nx.to_numpy_matrix(G,dtype=int)
-    graphDiameter = nx.diameter(G) + 1
-
-    eigVals = np.linalg.eigvals(adjacencyMatrix)
-    numOfEigVals = len(set(eigVals)) # We only consider distinct eigenvalues
-
-    symmetryRatio = numOfEigVals/graphDiameter
-
-    return symmetryRatio
-
-
-# Not used right now while I figure out what is going on in the paper it's presented in (normalized version).
-def graphAverageNeighborConnectivity(G):
-    '''
-    For ADC of degree 2, consider the 10 node GENI thesis topology. There are
-    2 nodes with a degree of 2: node-0 and node-9 (at the ends of the topology).
-    Take a look at the degree of those four neighbors (node-1 and node-2 for node-0, node-7 and node-8 for node-9)
-    and then add those degrees together (3 + 4, 4 + 3 = 14). Divide that value (14) by the total number of neighbors (degree * 2 == 2 * 2 = 4).
-    This gives an ADC of 3.5 for degree 2. For our metric from the paper, you divide this value by the numOfNodes - 1.
-    '''
-    numOfVerticies = G.number_of_nodes()
-    ADC = nx.average_degree_connectivity(G) # For each degree present in network: avgNeighborDegree / numOfNeighbors
-    ADC.update((x,y/(numOfVerticies - 1)) for x,y in ADC.items())
-
-    return ADC
+    return
 
 # Calling main function, start of script
 if __name__ == "__main__":

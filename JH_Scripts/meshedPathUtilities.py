@@ -26,7 +26,7 @@ def getEdgeChoice():
     edges.append("cd")
 
     edgeChoice['K4'] = edgesUpper(edges)
-    
+
 ###graph 1   K5   Star in Box   4-regular   v5, e10
     edges=[]
     edges.append("ab")
@@ -42,8 +42,8 @@ def getEdgeChoice():
     edges.append("da")
 
     edgeChoice['K5'] = edgesUpper(edges)
-    
-###graph 2   Peterson   3-regular   v10, e15    
+
+###graph 2   Peterson   3-regular   v10, e15
     edges=[]
     edges.append("ab")
     edges.append("bc")
@@ -63,9 +63,9 @@ def getEdgeChoice():
     edges.append("gi")
     edges.append("if")
 
-    edgeChoice['peterson'] = edgesUpper(edges)    
-    
-###graph 3   K6   5-regular   v6, e15    
+    edgeChoice['peterson'] = edgesUpper(edges)
+
+###graph 3   K6   5-regular   v6, e15
     edges=[]
     edges.append("ab")
     edges.append("bc")
@@ -86,8 +86,8 @@ def getEdgeChoice():
     edges.append("be")
     edges.append("cf")
 
-    edgeChoice['K6'] = edgesUpper(edges)    
-    
+    edgeChoice['K6'] = edgesUpper(edges)
+
 ###graph 4   Octahedron    4-regular   v6, e12
     edges=[]
     edges.append("ab")
@@ -252,7 +252,7 @@ def getEdgeChoice():
     edges.append("st")
     edges.append("sx")
     edges.append("tu")
-    
+
     edges.append("ux")
     edges.append("uy")
     edges.append("vy")
@@ -260,7 +260,7 @@ def getEdgeChoice():
     edges.append("xy")
 
     edgeChoice['S4'] = edgesUpper(edges)
-    
+
 ###graph 9   TestBed T16    2-connected     v16, e33
     edges=[]
     edges.append("ab")
@@ -268,37 +268,37 @@ def getEdgeChoice():
     edges.append("bc")
     edges.append("bd")
     edges.append("be")
-    
+
     edges.append("ce")
     edges.append("cf")
     edges.append("de")
     edges.append("dg")
     edges.append("dh")
-    
+
     edges.append("eh")
 #    edges.append("ei")  #2
 #    edges.append("ef")  #3
     edges.append("fi")
     edges.append("fj")
-    
+
     edges.append("gh")
     edges.append("gk")
 #    edges.append("hi")  #1
     edges.append("hk")
 #    edges.append("hl")  #2
-    
+
     edges.append("ij")
     edges.append("il")
     edges.append("im")
     edges.append("jm")
 #    edges.append("kl")  #3
-    
+
     edges.append("kn")
     edges.append("lm")
     edges.append("ln")
     edges.append("lp")
     edges.append("mp")
-    
+
     edges.append("np")
     edges.append("nq")
     edges.append("pq")
@@ -322,65 +322,73 @@ def getParents(verts,pathBundles):
             parents[vert] = ''
     return parents
 
+
+# The core function of computing path bundles for a given network
 def getMeshedPaths(nbrs,root):
-    verts = sorted(list(nbrs.keys()))
+    verts = sorted(list(nbrs.keys())) # Lexigraphically sorted list of nodes/vertices because each neighbor dictionary key is a node/vertex.
+
+    # Dictionaries for the path bundles and incoming neighbor bundles
     pathBundles = {}
     inBaskets = {}
-    for vert in verts:
-        pathBundles[vert] = []
-        inBaskets[vert] = []
-    pathBundles[root] = [root]
-    sending = [root]
-    sendingEvents = []
-    
-    while sending:
-        sendingEvents.append(len(sending))
-        nextSending = []
-        receiving = []
 
-        for vert in sending:
-            for nbr in nbrs[vert]:
-                inBaskets[nbr].append(pathBundles[vert])
-                receiving.extend(nbr)
+    for vert in verts:         # for each node in the network...
+        pathBundles[vert] = [] # Create an empty path bundle.
+        inBaskets[vert] = []   # Create an empty neighbor bundle input queue.
 
-        receiving = list(set(receiving))
+    pathBundles[root] = [root] # The root node will only ever have a path bundle of size 1 (itself/its own label).
+    sending = [root]           # The root node is the first node to send path bundle information to neighbors. Sending represents nodes which need to update its neighbors
+    sendingEvents = []         # The number of nodes that need to update their neighbors in a given step/event (don't focus on this for convergence).
 
-        for vert in receiving:
-            acyclics = []
-            for bndl in inBaskets[vert]:
-                for path in bndl:
-                    if vert not in path:
-                        acyclics.append(path + vert)
-            bndl = copy.deepcopy(pathBundles[vert])
-            bndl = list(set(bndl).union(acyclics))
+    while sending: # While there are node's that need to send path bundle updates / while every node has not converged with its final path bundle...
+        sendingEvents.append(len(sending)) # Append the number of entries in the sending list to sendingEvents (don't focus on this for convergence).
+        nextSending = []                   # Clear the list that decides which node sends a path bundle update next.
+        receiving = []                     # Clear the list of nodes that receive a path bundle update based on the current sender.
+
+        for vert in sending: # For each node that needs to send a path bundle update...
+            for nbr in nbrs[vert]:                       # For each neighbor the current node has, send the current node's path bundle...
+                inBaskets[nbr].append(pathBundles[vert]) # The neighbor receives the neighbor bundle sent by the current node and puts it in its input queue.
+                receiving.extend(nbr)                    # Note that the neighbor has received the neighbor bundle.
+
+        receiving = list(set(receiving)) # Remove all duplicate neighbors from the received list due to multiple senders that could share a neighbor.
+
+        for vert in receiving: # For each node that received a neighbor bundle update from a sender...
+            acyclics = []      # Create a list that will contain paths (not a cycle/network loop).
+            for bndl in inBaskets[vert]: # For each neighbor bundle the receiving node obtained...
+                for path in bndl:         # For each path in the current neighbor bundle being analyzed...
+                    if vert not in path:  # If the node which received the neighbor bundle is not in the current path (its label is not present in the path):
+                        acyclics.append(path + vert) # Take the path and append the receiving node, which completes the path from the root to the receiver.
+            bndl = copy.deepcopy(pathBundles[vert])  # Get a copy of the receiving node's current path bundle
+            bndl = list(set(bndl).union(acyclics))   # Add the valid paths from the neighbor bundle to the path bundle to create a grand bundle
             bndl.sort()
-            bndl.sort(key=len)
-            
-            if len(bndl) < 3:
+            bndl.sort(key=len) # Sort the grand bundle by the length of the path, meaning the shortest path is the first index of the list.
+    
+            if len(bndl) < 3: # If the number of paths in the updated path bundle is less than three...
                 newBndl = bndl
             else:
-                newBndl = trimBundle(bndl)
+                newBndl = trimBundle(bndl) # Trim the updated path bundle down to three entries (which are backups of the primary path)
 
-            chng = list(set(newBndl).difference(set(pathBundles[vert])))
-            if chng:
-                pathBundles[vert] = newBndl
-                nextSending.append(vert)
-            inBaskets[vert] = []
+            chng = list(set(newBndl).difference(set(pathBundles[vert]))) # Find the new paths (if any) that the receiving node added to its path bundle.
+            if chng:                        # If there was a new path added to the receiving node's path bundle...
+                pathBundles[vert] = newBndl # Designate the updated path bundle as the new official path bundle of that node
+                nextSending.append(vert)    # Add node to the list of nodes which needs to send a path bundle update (because it has new paths).
+            inBaskets[vert] = [] # Received neighbor bundle(s) have been processed, so they can be cleared from the node's input queue.
 
-        sending = nextSending
+        sending = nextSending # The node(s) which needs to send path bundle updates are marked as such.
 
     return MeshedPaths(verts,nbrs,root,pathBundles,sendingEvents)
+
 
 def getPathEdges(path):
     p0 = path[:LAST]
     p1 = path[REST:]
     edges = [''.join(sorted([v0,v1])) for v0, v1 in zip(p0,p1)]
-    
+
     return set(edges)
 
+# This function is needed because we are not just taking the three shortest paths, we are picking a shortest path (pPath) and BACKUPS for that path specifically
 def trimBundle(bndl):
-    pPath = bndl[FIRST]
-    if len(pPath) < 3:
+    pPath = bndl[FIRST] # The primary path AKA the best path in the path bundle
+    if len(pPath) < 3: # If the primary path is a one-hop neighbor, then take the first three 
         newBndl = bndl[FIRST:2]
     else:
         newBndl = [pPath]
@@ -405,7 +413,7 @@ def getParentsValidity(verts,parents,root):
     msg = 'Parents build a spanning tree.'
     if root not in parents:
         valid = False
-        msg = 'Root must be in parents.keys.'
+        msg = 'Root must be in "parents.keys"'
     elif parents[root] != '':
         valid = False
         msg = 'Root parent must be the null string.'
@@ -448,7 +456,7 @@ def getParentsValidity(verts,parents,root):
                         msg = 'Bailout limit exceeded.'
                         break
     return valid, msg
-    
+
 def disableVert(pathBundles,badVert):
     if badVert not in pathBundles:
         newBundles = {}

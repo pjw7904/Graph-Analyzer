@@ -83,7 +83,7 @@ def adjToNbrs(verts,adj):
     n = len(verts)
     nbrs = dict()
     for row in range(n):
-        vert = verts[row]        
+        vert = verts[row]
         tmp = []
         for col in range(n):
             if adj[row,col] > 0:
@@ -96,7 +96,7 @@ def getNumSpanningTrees(root,verts,adj):
     uVec = np.ones([n], dtype = int)
     degs = adj.dot(uVec)
     lap1 = np.diag(degs) - adj
-    
+
     nRoot = verts.index(root)
     tmp = np.delete(lap1,nRoot,0)
     lap2 = np.delete(tmp,nRoot,1)
@@ -225,10 +225,10 @@ def getMeshedTree(graf,root,maxClip):
         children[vert] = []
     pathBundles[root] = [root]
     sending = [root]
-    
+
     epoch = 0
     print('Epoch: ',epoch,'   sending: ', len(sending))
-    
+
     while sending:
         nextSending = []
         receiving = []
@@ -278,7 +278,7 @@ def getMeshedTree(graf,root,maxClip):
 
         sending = nextSending
         print('pathBundles: ',pathBundles)
-    
+
         epoch += 1
         print('Epoch: ',epoch,'   sending: ', len(sending))
 
@@ -293,7 +293,7 @@ def getMeshedPaths(verts,nbrs,root,maxClip):
     pathBundles[root] = [root]
     sending = [root]
     sendingEvents = []
-    
+
     while sending:
         sendingEvents.append(len(sending))
         nextSending = []
