@@ -182,4 +182,6 @@ Thumbs.db
 AnalysisScratchPad.txt
 creds.cnf
 Graphs/*
-algoOutput.txt
+MTA_Output.txt
+RSTA_Output.txt
+DA_Output.txt

@@ -228,7 +228,7 @@ def PanAlgo(Graph, root):
 
 def MTA_Jan2021(Graph, root):
     # Startup tasks
-    logFile = open("algoOutput.txt", "a")
+    logFile = open("MTA_Output.txt", "a")
     topNode = 0
     createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
 
@@ -328,6 +328,7 @@ def MTA_Jan2021(Graph, root):
 
     return
 
+
 def getPathEdgeSet(path):
     edgeSet = []
 
@@ -343,6 +344,7 @@ def getPathEdgeSet(path):
                 edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
 
     return edgeSet
+
 
 def mergePathBundles(pathBundle1, pathBundle2):
     greatBundle = []
