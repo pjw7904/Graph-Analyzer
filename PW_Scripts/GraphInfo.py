@@ -53,7 +53,7 @@ def main():
     argParser.add_argument("--ShowPic", action="store_true")
 
     # Get figures/plots of data collected
-    argParser.add_argument("--stats", action="store_true")
+    argParser.add_argument("--stats") # Argument of the name of the topology
 
     # Parse the arguments
     args = argParser.parse_args()
@@ -78,27 +78,45 @@ def main():
     # Define structures to collect X and Y axis info for statistics
     xAxisLabels = []
     yAxisValues = []
+    recvValues = [] # For receiving important info, not number of times sent
 
     # Running the algorithms in their most up-to-date form:
     if(args.STA):
-        STA.RSTA_algo(G, args.STA)
+        STA.RSTA(G, args.STA)
         xAxisLabels.append("RSTA")
         yAxisValues.append(G.graph["RSTA"])
+        recvValues.append(G.graph["RSTA_recv"])
 
     if(args.MTA):
-        MTA.MTA_Jan2021(G, args.MTA)
+        MTA.MTA(G, args.MTA)
         xAxisLabels.append("MTA")
         yAxisValues.append(G.graph["MTA"])
+        recvValues.append(G.graph["MTA_recv"])
 
     if(args.DA):
         DA.DA(G, args.DA)
         xAxisLabels.append("DA")
         yAxisValues.append(G.graph["DA"])
+        recvValues.append(G.graph["DA_recv"])
 
     if(args.stats):
-        fig = plt.figure()
-        plt.bar(xAxisLabels,yAxisValues)
-        plt.title("Iterations to Complete Algorithm")
+        plt.figure()
+        plt.bar(xAxisLabels, yAxisValues)
+
+        plt.title("Sender Iterations to Output SPT - {0}".format(args.stats))
+        plt.ylabel("Iteration count")
+        plt.xlabel("SPT Algorithm")
+
+        for index, value in enumerate(yAxisValues):
+            plt.text(value, index, str(value), color='black')
+            print(str(value))
+
+        plt.figure()
+        plt.bar(xAxisLabels, recvValues)
+        plt.title("Node State Modifications - {0}".format(args.stats))
+        plt.ylabel("Modifications")
+        plt.xlabel("SPT Algorithm")
+
         plt.show()
 
 

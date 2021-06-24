@@ -64,10 +64,6 @@ def createSTADataStructures(Graph, root):
     startingRPCNonRoot = 999999 # This is not present in the algorithm, it's my own addition
     startingRPCRoot    = 0
 
-    # Graph-wide metrics defined
-    Graph.graph["RSTA"] = 0 # Number of times a node has a turn to send
-    Graph.graph["neededUpdateCount"] = 0
-
     # For each node in the graph, give them an appropriate BID
     for node in Graph:
         if(node != root):
@@ -101,8 +97,9 @@ def createSTADataStructures(Graph, root):
     return logOutput
 
 # The logic and simulation of the Rapid Spanning Tree Algorithm
-def RSTA_algo(Graph, root):
+def RSTA(Graph, root):
     Graph.graph["RSTA"] = 0 # count number of iterations needed
+    Graph.graph["RSTA_recv"] = 0 # count number of times a node receives important information
 
     logFile = open(LOG_FILE, "w")
 
@@ -137,18 +134,18 @@ def RSTA_algo(Graph, root):
 
             # If the sent message vector is SUPERIOR to the receiver port vector
             if(senderVectorIsSuperior(sender_MsgVector, receiver_PortVector)):
-                Graph.graph["neededUpdateCount"] += 1
+                Graph.graph["RSTA_recv"] += 1
 
                 # If the sent message vector is also superior to the receiver root vector
                 if(senderVectorIsSuperior(sender_MsgVector, receiver_RootVector)):
-                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["neededUpdateCount"], receiver_PortInfo.state, ROOT_ROLE)
+                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["RSTA_recv"], receiver_PortInfo.state, ROOT_ROLE)
                     # Make the receiving port a root + fwding port, change all other ports to sync
                     syncVectors(Graph, sender_MsgVector, receiver, recvPort)
                     addToSendingQueue(sendingQueue, receiver)
                 
                 # If the root vector on the receiver is still superior
                 else:
-                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["neededUpdateCount"], receiver_PortInfo.state, ALT_ROLE)
+                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["RSTA_recv"], receiver_PortInfo.state, ALT_ROLE)
                     # Make the receiving port an alternate + blocking port
                     updatedPortVector = RSTAVector(sender_MsgVector.RootPathCost+1, 
                                         sender_MsgVector.DesignatedBridgeID) # RPC + 1 for received link cost
@@ -168,8 +165,8 @@ def RSTA_algo(Graph, root):
 
                 # Otherwise, move the port to the designated + fwding role
                 else:
-                    Graph.graph["neededUpdateCount"] += 1
-                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["neededUpdateCount"], receiver_PortInfo.state, DESIGNATED_ROLE)
+                    Graph.graph["RSTA_recv"] += 1
+                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["RSTA_recv"], receiver_PortInfo.state, DESIGNATED_ROLE)
                     Graph.nodes[receiver][recvPort] = portInfo(receiver_PortVector, DESIGNATED_ROLE)
                     addToSendingQueue(sendingQueue, receiver)
 
@@ -184,7 +181,7 @@ def RSTA_algo(Graph, root):
 
     # Simulation results and cleanup
     finalPortRoles = getPortInfo(Graph)
-    finalCountingStats = "\nSender count: {0}\nNeeded Updated Count: {1}".format(Graph.graph["RSTA"], Graph.graph["neededUpdateCount"])
+    finalCountingStats = "\nSender count: {0}\nNeeded Updated Count: {1}".format(Graph.graph["RSTA"], Graph.graph["RSTA_recv"])
     logRSTAEvent("\n=====RESULT=====\n" + finalPortRoles, logFile)
     logRSTAEvent(finalCountingStats, logFile)
 
