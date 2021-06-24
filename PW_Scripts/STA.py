@@ -25,6 +25,7 @@ Outline:
 ==========================='''
 from collections import namedtuple
 from tabulate import tabulate
+from timeit import default_timer as timer # Get elasped time of execution
 
 # Location/name of the log file
 LOG_FILE = "RSTA_Output.txt"
@@ -111,6 +112,9 @@ def RSTA(Graph, root):
     topNode = 0
     sendingQueue = [root] # The top node in the queue will "transmit" its message vector to its neighbors
 
+    # START TIMER
+    startTime = timer()
+
     # Begin transmission/simulaiton
     while sendingQueue:
         Graph.graph["RSTA"] += 1
@@ -179,11 +183,15 @@ def RSTA(Graph, root):
         # Sender is finished, pop it off the sending queue
         sendingQueue.pop(topNode)
 
+    # STOP TIMER
+    endTime = timer()
+
     # Simulation results and cleanup
     finalPortRoles = getPortInfo(Graph)
     finalCountingStats = "\nSender count: {0}\nNeeded Updated Count: {1}".format(Graph.graph["RSTA"], Graph.graph["RSTA_recv"])
     logRSTAEvent("\n=====RESULT=====\n" + finalPortRoles, logFile)
     logRSTAEvent(finalCountingStats, logFile)
+    logRSTAEvent("\nTime to execute: {0}".format(endTime - startTime), logFile)
 
     logFile.close()
 

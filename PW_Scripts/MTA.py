@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from heapq import merge # Merge function implemented for path bundle merging
+from timeit import default_timer as timer # Get elasped time of execution
 import copy
 
 def createMeshedTreeDatatStructures(G, root):
@@ -71,6 +72,9 @@ def MTA(Graph, root):
     # Queue is based on a list for this implementation test
     sendingQueue = [root]
     queueCounter = 0 # count the number of times the queue has popped an entry
+
+    # START TIMER
+    startTime = timer()
 
     # Go through the sending process
     while sendingQueue:
@@ -148,13 +152,20 @@ def MTA(Graph, root):
 
         sendingQueue.pop(topNode)
     
+    # STOP TIMER
+    endTime = timer()
+
+    # Log the resulting path bundles from each node
     resultOutput = ""
     for node in Graph:
         resultOutput += "{0}\n".format(node)
         for path in Graph.nodes[node]['pathBundle']:
             resultOutput += "\t{0}\n".format(path)
+
     logFile.write("\n=====RESULT=====\n" + resultOutput)
-    
+    logFile.write("\nTime to execute: {0}".format(endTime - startTime))
+
+    # Close the log file
     logFile.close()    
 
     return

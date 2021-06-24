@@ -2,6 +2,7 @@
 DIJKSTRA'S ALGORITHM
 ==========================='''
 from networkx import get_node_attributes
+from timeit import default_timer as timer # Get elasped time of execution
 
 # Location/name of the log file
 LOG_FILE = "DA_Output.txt"
@@ -23,6 +24,9 @@ def DA(Graph, source):
             Graph.nodes[node]["parent"] = "udef"
 
     Q = get_node_attributes(Graph, "dist") # unvisited set
+
+    # START TIMER
+    startTime = timer()
 
     # while Q is not empty, meaning there are still more nodes that haven't been discovered/marked
     while Q:
@@ -58,10 +62,14 @@ def DA(Graph, source):
             
             logDAEvent(neighborInfo, logFile)
 
+    # STOP TIMER
+    endTime = timer()
 
     # log the resulting SPT and its associated data (node distance + parent)
     result = getNodeInfo(Graph)
     logDAEvent("\n=====RESULT=====\n" + result, logFile)
+
+    logDAEvent("\nTime to execute: {0}".format(endTime - startTime), logFile)
 
     logFile.close()
 
