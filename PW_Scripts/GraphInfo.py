@@ -4,7 +4,6 @@
 import statistics # Calculating mathematical statistics of numeric (Real-valued) data
 import math # Access to the mathematical functions defined by the C standard.
 import argparse # Parsing command-line arguments
-import configparser # Parsing configuration file arguments
 import sys
 
 # External modules
@@ -14,7 +13,6 @@ import numpy as np # For all thinks linear algebra, matricies, etc and efficent 
 import matplotlib.pyplot as plt # Drawing graphs
 
 # Custom modules
-from GENIutils import getConfigInfo # Custom library for GENI functions
 import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
 import MTA # MTA simulation based on John's FSM
 import STA # STA simulation based on IEEE 802.1D-2004, Section 17
@@ -189,10 +187,7 @@ def main():
 def generateGraph(sourceInput):
     graphFormat = sourceInput[0]
 
-    if(graphFormat == "RSPEC"):
-        G = getGENINetworkInfo()
-
-    elif(graphFormat == "graphml" and len(sourceInput) == 2):
+    if(graphFormat == "graphml" and len(sourceInput) == 2):
         G = nx.read_graphml(path=sourceInput[1])
 
     elif(graphFormat == "random" and len(sourceInput) == 2):
@@ -243,41 +238,6 @@ def generateGraph(sourceInput):
         sys.exit("Error: invalid source, please try again using RSPEC, graphml, random, or simulation")
 
     return G
-
-
-def getGENINetworkInfo():
-    # Read the necessary configuration information from creds.cnf
-    switchNamingSyntax  = getConfigInfo("RSTP Utilities", "MTSName")
-    endNodeNamingSyntax = getConfigInfo("RSTP Utilities", "endNodeName")
-    networkInfo         = getConfigInfo("Local Utilities", "endnodeInfoLocation")
-
-    # Create a Config Parser object so GENI topology information can be read
-    config = configparser.ConfigParser()
-    config.read(networkInfo) # Grabbing information from addrinfo.cnf
-
-    # Creating a list of GENI topology verticies
-    V = [node for node in config.sections() if(switchNamingSyntax in node and endNodeNamingSyntax not in node)]
-
-    # Creating a list of GENI topology edges
-    E = []
-    for node in V:
-        nodeNeighbors = [(key, value) for key, value in config.items(node) if("_neighbor" in key and endNodeNamingSyntax not in value)]
-        for neighbor in nodeNeighbors:
-            E.append((node, neighbor[1]))
-
-    # Create a NetworkX graph and add in the GENI topology information
-    G = nx.Graph()
-    G.add_nodes_from(V)
-    G.add_edges_from(E)
-
-    # Write this graph to a graphml file to be reused later on
-    fileName = input("Graph name: ")
-    nx.write_graphml(G=G, path=fileName + ".graphml", prettyprint=True)
-    print("Note: graph {0} has been converted to a graphml file named {1}. It is saved in the current directory."
-        .format(fileName, fileName + ".graphml"))
-
-    return G
-
 
 def computeMetrics(calcOptions, G):
     if(calcOptions["Classical"]):
