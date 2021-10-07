@@ -51,6 +51,8 @@ def createMeshedTreeDatatStructures(G, root):
 def MTA(Graph, root):
     Graph.graph["MTA"] = 0 # count number of iterations needed
     Graph.graph["MTA_recv"] = 0 # count number of times a node receives important information
+    Graph.graph["MTA_step"] = 0 # count the number of times a node processes ingress information
+    Graph.graph["MTA_time"] = 0 # Elasped algorithm simulation execution time
 
     # Startup tasks
     logFile = open("MTA_Output.txt", "a")
@@ -97,12 +99,14 @@ def MTA(Graph, root):
                 # (1) (i) Delete any path that already contains the local label L(v) and (ii) append L(v) to the rest of them
                 pathsReceived = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
                 validPaths = list(dict.fromkeys(pathsReceived)) # remove duplicates
-                logFile.write("\tValid paths received: {0}\n".format(validPaths))
+                Graph.graph["MTA_step"] += 1
+                logFile.write("\t{0} Valid paths received: {1}\n".format(Graph.graph["MTA_step"], validPaths))
 
                 # (2) Form a great bundle B(v) by merging the path bundle with the paths from (1)
                 #greatBundle = mergePathBundles(Graph.nodes[x]['pathBundle'], validPaths)
                 greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=lambda x: (len(x), x))) # merge cause duplicates, should I remove them with the same process as above?
-                logFile.write("\tGreat bundle post-merge: {0}\n".format(greatBundle))
+                Graph.graph["MTA_step"] += 1
+                logFile.write("\t{0} Great bundle post-merge: {1}\n".format(Graph.graph["MTA_step"], greatBundle))
 
                 # (3) remove the preferred path and create a new path bundle with it. Then define a deletion set (deletions that will break the path)
                 preferredPath = greatBundle[0]
@@ -122,7 +126,8 @@ def MTA(Graph, root):
                         logFile.write("\tFirst path remaining in great bundle: {0}\n".format(Q))
                         remedySet = getPathEdgeSet(Q)
                         T = [edge for edge in S if edge not in remedySet]
-                        logFile.write("\tRemedy Set ( T = s - E(Q) ): {0}\n".format(T))
+                        Graph.graph["MTA_step"] += 1
+                        logFile.write("\t{0} Remedy Set ( T = s - E(Q) ): {1}\n".format(Graph.graph["MTA_step"], T))
 
                         # (ii) if T = null or not null
                         if not T:
@@ -131,7 +136,8 @@ def MTA(Graph, root):
                             Graph.nodes[x]['newPathBundle'].append(Q)
                             logFile.write("\tAdding new path: {0}\n".format(Q))
                             S = [edge for edge in S if edge not in T] # S now contains the remaining edges still in need of a remedy
-                            logFile.write("\tUpdated S for remaining edges in need of a remedy: {0}\n".format(S))
+                            Graph.graph["MTA_step"] += 1
+                            logFile.write("\t{0} Updated S for remaining edges in need of a remedy: {1}\n".format(Graph.graph["MTA_step"], S))
 
                         # (iii) if S = null or not null
                         if not S:
@@ -164,6 +170,7 @@ def MTA(Graph, root):
 
     logFile.write("\n=====RESULT=====\n" + resultOutput)
     logFile.write("\nTime to execute: {0}".format(endTime - startTime))
+    Graph.graph["MTA_time"] = endTime - startTime
 
     # Close the log file
     logFile.close()    

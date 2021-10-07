@@ -10,6 +10,8 @@ LOG_FILE = "DA_Output.txt"
 def DA(Graph, source):
     Graph.graph["DA"] = 0 # count number of iterations needed
     Graph.graph["DA_recv"] = 0
+    Graph.graph["DA_step"] = 0
+    Graph.graph["DA_time"] = 0 # Elasped algorithm simulation execution time
 
     logFile = open(LOG_FILE, "w")
 
@@ -42,21 +44,23 @@ def DA(Graph, source):
 
         # For each neighbor of v, update the distance from the root if it is lower than the previous distance
         for u in Graph.neighbors(v):
-            neighborInfo = "\t{0} [distance: {1} | parent: {2}]: ".format(u, Graph.nodes[u]["dist"], Graph.nodes[u]["parent"])
+            neighborInfo = "\t({0})[distance: {1} | parent: {2}]: ".format(u, Graph.nodes[u]["dist"], Graph.nodes[u]["parent"])
             
             if u in Q:
                 alt = Graph.nodes[v]["dist"] + EDGE_COST # distance = distance of v + 1 (unweighted edge cost)
+
+                Graph.graph["DA_step"] += 1
                 
                 if alt < Graph.nodes[u]["dist"]:
                     Graph.nodes[u]["dist"] = alt
                     Graph.nodes[u]["parent"] = v # parent node is now v, as that it how it gets back to root
                     Q[u] = alt
-                    neighborInfo += "distance ---> {0} | parent ---> {1}\n".format(alt, v)
+                    neighborInfo += "({0})distance ---> {1} | parent ---> {2}\n".format(Graph.graph["DA_step"], alt, v)
 
                     Graph.graph["DA_recv"] += 1
                 
                 else:
-                    neighborInfo += "no change, higher cost path\n"
+                    neighborInfo += "({0})no change, higher cost path\n".format(Graph.graph["DA_step"])
             else:
                 neighborInfo += "already visited\n"
             
@@ -70,6 +74,7 @@ def DA(Graph, source):
     logDAEvent("\n=====RESULT=====\n" + result, logFile)
 
     logDAEvent("\nTime to execute: {0}".format(endTime - startTime), logFile)
+    Graph.graph["DA_time"] = endTime - startTime
 
     logFile.close()
 

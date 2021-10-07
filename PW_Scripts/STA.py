@@ -101,6 +101,8 @@ def createSTADataStructures(Graph, root):
 def RSTA(Graph, root):
     Graph.graph["RSTA"] = 0 # count number of iterations needed
     Graph.graph["RSTA_recv"] = 0 # count number of times a node receives important information
+    Graph.graph["RSTA_step"] = 0 # count the number of times a node processes ingress information
+    Graph.graph["RSTA_time"] = 0 # Elasped algorithm simulation execution time
 
     logFile = open(LOG_FILE, "w")
 
@@ -139,17 +141,18 @@ def RSTA(Graph, root):
             # If the sent message vector is SUPERIOR to the receiver port vector
             if(senderVectorIsSuperior(sender_MsgVector, receiver_PortVector)):
                 Graph.graph["RSTA_recv"] += 1
+                Graph.graph["RSTA_step"] += 2 # Two comparisons have to be made regardless at this step, vs portVector and vs rootVector
 
                 # If the sent message vector is also superior to the receiver root vector
                 if(senderVectorIsSuperior(sender_MsgVector, receiver_RootVector)):
-                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["RSTA_recv"], receiver_PortInfo.state, ROOT_ROLE)
+                    receiverInfo += "({0}){1} ----> {2}\n".format(str(Graph.graph["RSTA_step"]-1) + " " + str(Graph.graph["RSTA_step"]), receiver_PortInfo.state, ROOT_ROLE)
                     # Make the receiving port a root + fwding port, change all other ports to sync
                     syncVectors(Graph, sender_MsgVector, receiver, recvPort)
                     addToSendingQueue(sendingQueue, receiver)
                 
                 # If the root vector on the receiver is still superior
                 else:
-                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["RSTA_recv"], receiver_PortInfo.state, ALT_ROLE)
+                    receiverInfo += "({0}){1} ----> {2}\n".format(str(Graph.graph["RSTA_step"]-1) + " " + str(Graph.graph["RSTA_step"]), receiver_PortInfo.state, ALT_ROLE)
                     # Make the receiving port an alternate + blocking port
                     updatedPortVector = RSTAVector(sender_MsgVector.RootPathCost+1, 
                                         sender_MsgVector.DesignatedBridgeID) # RPC + 1 for received link cost
@@ -158,19 +161,21 @@ def RSTA(Graph, root):
 
             # If the sent message vector is IDENTICAL to the receiver port vector, ignore it
             elif(senderVectorIsIdentical(sender_MsgVector, receiver_PortVector)):
-                receiverInfo += "No change, identical vectors\n"
+                Graph.graph["RSTA_step"] += 2 
+                receiverInfo += "({0})No change, identical vectors\n".format(str(Graph.graph["RSTA_step"]-1) + " " + str(Graph.graph["RSTA_step"]))
             
             # If the sent message vector is INFERIOR to the receiver port vector
             elif(not senderVectorIsSuperior(sender_MsgVector, receiver_PortVector)):
+                Graph.graph["RSTA_step"] += 2 
 
                 # If the receiver port role is already designated, ignore it
                 if(receiver_PortInfo.state == DESIGNATED_ROLE):
-                    receiverInfo += "No change, already designated\n"
+                    receiverInfo += "({0})No change, already designated\n".format(str(Graph.graph["RSTA_step"]-1) + " " + str(Graph.graph["RSTA_step"]))
 
                 # Otherwise, move the port to the designated + fwding role
                 else:
                     Graph.graph["RSTA_recv"] += 1
-                    receiverInfo += "({0}){1} ----> {2}\n".format(Graph.graph["RSTA_recv"], receiver_PortInfo.state, DESIGNATED_ROLE)
+                    receiverInfo += "({0}){1} ----> {2}\n".format(str(Graph.graph["RSTA_step"]-1) + " " + str(Graph.graph["RSTA_step"]), receiver_PortInfo.state, DESIGNATED_ROLE)
                     Graph.nodes[receiver][recvPort] = portInfo(receiver_PortVector, DESIGNATED_ROLE)
                     addToSendingQueue(sendingQueue, receiver)
 
@@ -192,6 +197,7 @@ def RSTA(Graph, root):
     logRSTAEvent("\n=====RESULT=====\n" + finalPortRoles, logFile)
     logRSTAEvent(finalCountingStats, logFile)
     logRSTAEvent("\nTime to execute: {0}".format(endTime - startTime), logFile)
+    Graph.graph["RSTA_time"] = endTime - startTime
 
     logFile.close()
 

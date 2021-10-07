@@ -79,6 +79,7 @@ def main():
     xAxisLabels = []
     yAxisValues = []
     recvValues = [] # For receiving important info, not number of times sent
+    stepValues = [] # For any step that required some sort of computation, whether it resulted in a modified state or not
 
     # Running the algorithms in their most up-to-date form:
     if(args.STA):
@@ -86,18 +87,21 @@ def main():
         xAxisLabels.append("RSTA")
         yAxisValues.append(G.graph["RSTA"])
         recvValues.append(G.graph["RSTA_recv"])
+        stepValues.append(G.graph["RSTA_step"])
 
     if(args.MTA):
         MTA.MTA(G, args.MTA)
         xAxisLabels.append("MTA")
         yAxisValues.append(G.graph["MTA"])
         recvValues.append(G.graph["MTA_recv"])
+        stepValues.append(G.graph["MTA_step"])
 
     if(args.DA):
         DA.DA(G, args.DA)
         xAxisLabels.append("DA")
         yAxisValues.append(G.graph["DA"])
         recvValues.append(G.graph["DA_recv"])
+        stepValues.append(G.graph["DA_step"])
 
     if(args.stats):
         plt.figure()
@@ -115,6 +119,12 @@ def main():
         plt.bar(xAxisLabels, recvValues)
         plt.title("Node State Modifications - {0}".format(args.stats))
         plt.ylabel("Modifications")
+        plt.xlabel("SPT Algorithm")
+
+        plt.figure()
+        plt.bar(xAxisLabels, stepValues)
+        plt.title("Distributed Computational Steps - {0}".format(args.stats))
+        plt.ylabel("steps")
         plt.xlabel("SPT Algorithm")
 
         plt.show()
