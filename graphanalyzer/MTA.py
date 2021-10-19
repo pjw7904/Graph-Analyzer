@@ -4,7 +4,7 @@ from timeit import default_timer as timer # Get elasped time of execution
 import copy
 
 def createMeshedTreeDatatStructures(G, root):
-    logFile = open("MTA_Output.txt", "w")
+    logFile = open("results/log_results/MTA_Output.txt", "w")
     IDCount = 0
 
     for node in G:
@@ -55,9 +55,9 @@ def MTA(Graph, root):
     Graph.graph["MTA_time"] = 0 # Elasped algorithm simulation execution time
 
     # Startup tasks
-    logFile = open("MTA_Output.txt", "a")
-    topNode = 0
     createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
+    logFile = open("results/log_results/MTA_Output.txt", "a")
+    topNode = 0
 
     # Assign initial path bundles to each vertex
     for vertex in Graph:
@@ -142,7 +142,6 @@ def MTA(Graph, root):
                         # (iii) if S = null or not null
                         if not S:
                             processing = False
-
                     else:
                         processing = False
 
