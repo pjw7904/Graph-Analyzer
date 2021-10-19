@@ -178,11 +178,8 @@ Thumbs.db
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks,visualstudiocode
 
 
-### Custom Stuff ###
+### Project Directory Structure ###
 AnalysisScratchPad.txt
 creds.cnf
 Graphs/*
-MTA_Output.txt
-RSTA_Output.txt
-DA_Output.txt
 results/*
