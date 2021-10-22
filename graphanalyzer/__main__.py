@@ -9,7 +9,8 @@ from tabulate import tabulate # Printing formatted ASCII tables
 
 # Custom modules
 import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
-import MTA # MTA simulation based on John's FSM
+import MTA_RP # MTA simulation based on John's FSM
+import MTP_NPaths
 import STA # STA simulation based on IEEE 802.1D-2004, Section 17
 import DA # Dijkstra's algorithm simulation
 import ClassicalMetrics
@@ -117,7 +118,7 @@ if(args.STA):
     stepValues.append(G.graph["RSTA_step"])
 
 if(args.MTA):
-    MTA.MTA(G, args.MTA)
+    MTA_RP.MTA(G, args.MTA)
     xAxisLabels.append("MTA")
     yAxisValues.append(G.graph["MTA"])
     recvValues.append(G.graph["MTA_recv"])
@@ -158,7 +159,7 @@ if(args.stats):
 
 # JH MTA simulation (version with 3 paths, nothing disjoint)
 if(args.hamiltonAlgo):
-    sendingEvents, sendingEvents2 = MTA.hamiltonAlgo(G, args.hamiltonAlgo, 3)
+    sendingEvents, sendingEvents2 = MTP_NPaths.hamiltonAlgo(G, args.hamiltonAlgo, 3)
 
     for vertex in G:
         print("Path Bundle for {0} (ID = {1})\n===".format(vertex, G.nodes[vertex]['ID']))
@@ -172,7 +173,7 @@ if(args.hamiltonAlgo):
 
 # YP MTA simulation (version with 3 paths, nothing disjoint)
 if(args.PanAlgo):
-    nodeSendingCount = MTA.PanAlgo(G, args.PanAlgo)
+    nodeSendingCount = MTP_NPaths.PanAlgo(G, args.PanAlgo)
 
     print("Sending count: {0}".format(nodeSendingCount))
     print("other:\n{0}".format(nx.get_node_attributes(G, 'updateCounter')))
