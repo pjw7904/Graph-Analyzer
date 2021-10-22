@@ -46,6 +46,9 @@ def parseArgs():
     # Get figures/plots of data collected
     argParser.add_argument("--stats") # Argument of the name of the topology
 
+    # Allow the user to remove an edge from the graph. The algorithm being run will determine what happens based on that removed edge input
+    argParser.add_argument("-r", "--remove", nargs=2)
+
     # Parse the arguments
     args = argParser.parse_args()
 
@@ -96,6 +99,13 @@ metricOptions = {
     "AvgNC": args.CalcAvgNC
 }
 
+# Structure to hold all available network-based graph algorithm options
+algorithmOptions = {
+    "STA": args.STA,
+    "MTA_RP": args.MTA,
+    "DA": args.DA
+}
+
 #######
 # NetworkX Graph In Use:
 # |Type       | Self-Loops | Parallel Edges|
@@ -118,11 +128,15 @@ if(args.STA):
     stepValues.append(G.graph["RSTA_step"])
 
 if(args.MTA):
-    MTA_RP.MTA(G, args.MTA)
+    MTA_RP.MTA_init(G, args.MTA)
     xAxisLabels.append("MTA")
     yAxisValues.append(G.graph["MTA"])
     recvValues.append(G.graph["MTA_recv"])
     stepValues.append(G.graph["MTA_step"])
+
+    if(args.remove):
+        if (len(args.remove) == 2):
+            G.remove_edge(args.remove[0], args.remove[1])
 
 if(args.DA):
     DA.DA(G, args.DA)

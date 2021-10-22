@@ -9,7 +9,7 @@ import copy # Get the ability to perform a deep copy
 #
 TOP_NODE = 0
 
-def MTA(Graph, root):
+def MTA_init(Graph, root):
     # Startup tasks
     defineMetrics(Graph)
     setVertexLabels(Graph, root)
@@ -87,7 +87,6 @@ def send(v, Graph, root, sendQueue, logFile, queueCounter):
     # Dequeue v from the send queue and then check to see if there is another node to send data
     s = sendQueue.pop(TOP_NODE)
     if sendQueue:
-        #s = sendQueue.pop(TOP_NODE)
         send(s, Graph, root, sendQueue, logFile, queueCounter)
 
     return
