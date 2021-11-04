@@ -8,6 +8,7 @@ import copy # Get the ability to perform a deep copy
 # Constants
 #
 TOP_NODE = 0
+LOG_FILE = "results/log_results/MTA_Output.txt"
 
 def MTA_init(Graph, root):
     # Startup tasks
@@ -15,8 +16,8 @@ def MTA_init(Graph, root):
     setVertexLabels(Graph, root)
 
     # Write updates to specified log file
-    logFile = open("results/log_results/MTA_Output.txt", "a")
-    
+    logFile = open(LOG_FILE, "a")
+
     # Non-root vertices are assigned an empty path bundle
     for vertex in Graph:
         if vertex != root: # 
@@ -45,11 +46,7 @@ def MTA_init(Graph, root):
     endTime = timer()
 
     # Log the resulting path bundles from each node
-    resultOutput = ""
-    for node in Graph:
-        resultOutput += "{0}\n".format(node)
-        for path in Graph.nodes[node]['pathBundle']:
-            resultOutput += "\t{0}\n".format(path)
+    resultOutput = logPathBundles(Graph)
 
     logFile.write("\n=====RESULT=====\n" + resultOutput)
     logFile.write("\nTime to execute: {0}".format(endTime - startTime))
@@ -59,6 +56,64 @@ def MTA_init(Graph, root):
     logFile.close()    
 
     return
+
+def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
+    # Define a send queue for VID removal propogation. As long as a vertex has a VID to remove, it will continue to propogate that removal
+    sendQueue = []
+
+    # Write updates to specified log file
+    logFile = open(LOG_FILE, "a")
+    logFile.write("\n\n=====RE-CONVERGENCE=====\n")
+
+    # To determine the right order, I can always look at each preferred path and determine which is longer by one symbol than the other
+    # For now, I'm considering the second vertex to be the downstream node where the VID lives
+    # Define the edge that has been removed
+    removedEdge = Graph.nodes[brokenVertex1]["ID"] + Graph.nodes[brokenVertex2]["ID"]
+    logFile.write("Removed edge: {0}\n".format(removedEdge))
+    logFile.write("Nodes Attached to removed edge: {0}, {1}\n".format(brokenVertex1, brokenVertex2))
+
+    # The downstream vertex attached to the removed edge is the first node to register the change
+    sendQueue.append(brokenVertex2)
+    
+    # Start elapsed time timer
+    startTime = timer()
+
+    # Continue to propogate removal until finished
+    while(sendQueue):
+        sendingVertex = sendQueue.pop(TOP_NODE)
+        # Determine what VIDs need to be removed from the two nodes that lost their shared edge
+        if(hasRemovedVIDs(Graph, sendingVertex, removedEdge)):
+            for x in Graph.neighbors(sendingVertex):
+                sendQueue.append(x)
+
+    endTime = timer()
+
+    resultOutput = logPathBundles(Graph)
+    logFile.write("{0}\n{1}".format("\n=====RESULT=====", resultOutput))
+
+    logFile.write("\nTime to re-converge: {0}".format(format(endTime - startTime, '.8f')))
+
+    logFile.close()
+
+    return
+
+'''
+Return a boolean depending on if any VIDs were removed
+'''
+def hasRemovedVIDs(Graph, vertex, edge):
+    VIDsRemoved = False
+    VIDsToRemove = []
+
+    # For every path that contains the broken edge, remove it
+    for path in Graph.nodes[vertex]['pathBundle']:
+        if edge in path:
+            VIDsToRemove.append(path)
+            VIDsRemoved = True
+
+    for path in VIDsToRemove:
+        Graph.nodes[vertex]['pathBundle'].remove(path)
+
+    return VIDsRemoved
 
 def send(v, Graph, root, sendQueue, logFile, queueCounter):
     # Update meta-information about algorithm sending queue
@@ -159,7 +214,7 @@ def defineMetrics(Graph):
     return
 
 def setVertexLabels(G, root):
-    logFile = open("results/log_results/MTA_Output.txt", "w")
+    logFile = open(LOG_FILE, "w")
     IDCount = 0
 
     for node in G:
@@ -192,3 +247,15 @@ def getPathEdgeSet(path):
                 edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
 
     return edgeSet
+
+def logPathBundles(Graph):
+    resultOutput = ""
+
+    # Log the resulting path bundles from each node
+    resultOutput = ""
+    for node in Graph:
+        resultOutput += "{0}\n".format(node)
+        for path in Graph.nodes[node]['pathBundle']:
+            resultOutput += "\t{0}\n".format(path)
+
+    return resultOutput

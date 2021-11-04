@@ -6,6 +6,7 @@ import sys
 import networkx as nx # Graph creation and analysis
 import matplotlib.pyplot as plt # Drawing graphs
 from tabulate import tabulate # Printing formatted ASCII tables
+from networkx import NetworkXError
 
 # Custom modules
 import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
@@ -58,7 +59,11 @@ def generateGraph(sourceInput):
     graphFormat = sourceInput[0]
 
     if(graphFormat == "graphml" and len(sourceInput) == 2):
-        G = nx.read_graphml(path=sourceInput[1])
+        try:
+            G = nx.read_graphml(path=sourceInput[1])
+        except FileNotFoundError:
+            print("graphml graph file {0} does not exist in this location".format(sourceInput[1]))
+            sys.exit()
 
     elif(graphFormat == "random" and len(sourceInput) == 2):
         hardCodedNumOfNodes = 25
@@ -134,9 +139,19 @@ if(args.MTA):
     recvValues.append(G.graph["MTA_recv"])
     stepValues.append(G.graph["MTA_step"])
 
-    if(args.remove):
+    if(args.remove):            
         if (len(args.remove) == 2):
-            G.remove_edge(args.remove[0], args.remove[1])
+            try:
+                G.remove_edge(args.remove[0], args.remove[1])
+            except NetworkXError:
+                print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+                sys.exit(0)
+
+            MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
+
+        else:
+            print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
+            sys.exit(0)
 
 if(args.DA):
     DA.DA(G, args.DA)
