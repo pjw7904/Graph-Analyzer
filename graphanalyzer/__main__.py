@@ -65,6 +65,16 @@ def generateGraph(sourceInput):
             print("graphml graph file {0} does not exist in this location".format(sourceInput[1]))
             sys.exit()
 
+    elif(graphFormat == "ring" and len(sourceInput) == 2):
+        G = nx.cycle_graph(int(sourceInput[1]))
+
+        # Create a dictionary mapping the integer names to an updated node-x names, where x is the int name
+        updatedVertexNames = {}
+        for vertex in G:
+            updatedVertexNames[vertex] = "node-{intName}".format(intName=vertex)
+
+        nx.relabel_nodes(G, updatedVertexNames, copy=False)
+
     elif(graphFormat == "random" and len(sourceInput) == 2):
         hardCodedNumOfNodes = 25
         probabilityForEdgeCreation = float(sourceInput[1])
