@@ -13,6 +13,7 @@ import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
 import MTA_RP # MTA simulation based on John's FSM
 import MTP_NPaths
 import STA # STA simulation based on IEEE 802.1D-2004, Section 17
+import RSTA
 import DA # Dijkstra's algorithm simulation
 import ClassicalMetrics
 
@@ -136,11 +137,12 @@ stepValues = [] # For any step that required some sort of computation, whether i
 
 # Running the algorithms in their most up-to-date form:
 if(args.STA):
-    STA.RSTA(G, args.STA)
-    xAxisLabels.append("RSTA")
-    yAxisValues.append(G.graph["RSTA"])
-    recvValues.append(G.graph["RSTA_recv"])
-    stepValues.append(G.graph["RSTA_step"])
+    RSTA.init(G, args.STA)
+    #STA.RSTA(G, args.STA)
+    #xAxisLabels.append("RSTA")
+    #yAxisValues.append(G.graph["RSTA"])
+    #recvValues.append(G.graph["RSTA_recv"])
+    #stepValues.append(G.graph["RSTA_step"])
 
 if(args.MTA):
     MTA_RP.MTA_init(G, args.MTA)
