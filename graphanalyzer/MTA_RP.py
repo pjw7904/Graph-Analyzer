@@ -15,6 +15,8 @@ def MTA_init(Graph, root):
     defineMetrics(Graph)
     setVertexLabels(Graph, root)
 
+    # Mark the root
+
     # Write updates to specified log file
     logFile = open(LOG_FILE, "a")
 
@@ -30,6 +32,8 @@ def MTA_init(Graph, root):
             logFile.write("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
         Graph.nodes[vertex]['updateCounter'] = 0 # Counts the number of times a node has to send an update to a neighbor
+        Graph.nodes[vertex]['children'] = [] # mark children on the given node
+        Graph.nodes[vertex]['parent'] = "None" # mark the parent of the given node (root will not have one) 
 
     sendQueue = [root]
     v = sendQueue[TOP_NODE] # v is the top node in the sending queue
@@ -63,7 +67,7 @@ def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
 
     # Write updates to specified log file
     logFile = open(LOG_FILE, "a")
-    logFile.write("\n\n=====RE-CONVERGENCE=====\n")
+    logFile.write("\n\n=====REMOVED EDGE=====\n")
 
     # To determine the right order, I can always look at each preferred path and determine which is longer by one symbol than the other
     # For now, I'm considering the second vertex to be the downstream node where the VID lives
@@ -82,8 +86,8 @@ def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
     while(sendQueue):
         sendingVertex = sendQueue.pop(TOP_NODE)
         # Determine what VIDs need to be removed from the two nodes that lost their shared edge
-        if(hasRemovedVIDs(Graph, sendingVertex, removedEdge)):
-            for x in Graph.neighbors(sendingVertex):
+        if(sendingVertex == brokenVertex1 or hasRemovedVIDs(Graph, sendingVertex, removedEdge)):
+            for x in Graph.nodes[sendingVertex]['children']:
                 sendQueue.append(x)
 
     endTime = timer()
@@ -91,7 +95,20 @@ def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
     resultOutput = logPathBundles(Graph)
     logFile.write("{0}\n{1}".format("\n=====RESULT=====", resultOutput))
 
-    logFile.write("\nTime to re-converge: {0}".format(format(endTime - startTime, '.8f')))
+    logFile.write("\nTime to remove edge: {0}".format(format(endTime - startTime, '.8f')))
+
+    logFile.write("\n\n=====RE-CONVERGENCE=====\n")
+
+    # Once everything is fixed with the primary paths, have the vertex downstream of the edge removal kick off the reconvergence process
+    sendQueue = [brokenVertex2]
+    v = sendQueue[TOP_NODE] # v is the top node in the sending queue
+
+    # Mark the vertex downstream of the edge removal as the new root
+    queueCounter = 0 # count the number of times the queue has popped an entry
+    send(v, Graph, brokenVertex2, sendQueue, logFile, queueCounter)
+
+    resultOutput = logPathBundles(Graph)
+    logFile.write("{0}\n{1}".format("\n=====RESULT=====", resultOutput))
 
     logFile.close()
 
@@ -137,7 +154,10 @@ def send(v, Graph, root, sendQueue, logFile, queueCounter):
             logFile.write("\t{0} Valid paths received: {1}\n".format(Graph.graph["MTA_step"], validPaths))
 
             # The receiving node now processes the valid paths in the bundle it has collected
-            processBundle(x, Graph, validPaths, sendQueue, logFile)
+            isChild = processBundle(x, v, Graph, validPaths, sendQueue, logFile)
+
+            if(isChild and x not in Graph.nodes[v]['children']):
+                Graph.nodes[v]['children'].append(x)
 
     # Dequeue v from the send queue and then check to see if there is another node to send data
     s = sendQueue.pop(TOP_NODE)
@@ -146,7 +166,10 @@ def send(v, Graph, root, sendQueue, logFile, queueCounter):
 
     return
 
-def processBundle(x, Graph, validPaths, sendQueue, logFile):
+def processBundle(x, v, Graph, validPaths, sendQueue, logFile):
+    # Determine if this vertex who is processing the bundle is a child of the sender
+    isChild = False
+
     # Form a great bundle B(v) by merging the path bundle with the paths from the calling vertex
     greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=lambda x: (len(x), x)))
 
@@ -197,13 +220,24 @@ def processBundle(x, Graph, validPaths, sendQueue, logFile):
     if Graph.nodes[x]['newPathBundle'] != Graph.nodes[x]['pathBundle']:
         Graph.nodes[x]['pathBundle'] = Graph.nodes[x]['newPathBundle'] # WATCH FOR SHALLOW COPIES
 
+        # If this vertex is now a child of the sender, mark that for the sender to update
+        if(Graph.nodes[x]['pathBundle'][0][:-1] == Graph.nodes[v]['pathBundle'][0]):
+            isChild = True
+
+            # Remove the old parent, if necessary
+            previousParent = Graph.nodes[x]['parent']
+            if(previousParent != "None" and previousParent != v):
+                Graph.nodes[previousParent]['children'].remove(x)
+
+            Graph.nodes[x]['parent'] = v
+
         logFile.write("\tOfficial new path bundle for node: {0}\n".format(Graph.nodes[x]['pathBundle']))
         Graph.graph["MTA_recv"] += 1 # node received updated information that it used
 
         if(x not in sendQueue):
             sendQueue.append(x)
 
-    return
+    return isChild
 
 def defineMetrics(Graph):
     Graph.graph["MTA"] = 0      # count number of iterations needed
@@ -255,7 +289,18 @@ def logPathBundles(Graph):
     resultOutput = ""
     for node in Graph:
         resultOutput += "{0}\n".format(node)
+
         for path in Graph.nodes[node]['pathBundle']:
             resultOutput += "\t{0}\n".format(path)
+
+        resultOutput += "\t---\n\tchildren: "
+        if(Graph.nodes[node]['children']):
+            for child in Graph.nodes[node]['children']:
+                resultOutput += "{0} ".format(child)
+        else:
+            resultOutput += "NONE"
+
+        resultOutput += "\n\tparent: {0}".format(Graph.nodes[node]['parent'])
+        resultOutput += "\n\t---\n"
 
     return resultOutput
