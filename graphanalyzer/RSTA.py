@@ -1,9 +1,11 @@
+import logging
+
 from collections import namedtuple
 from tabulate import tabulate
 from timeit import default_timer as timer # Get elasped time of execution
 
 # Location/name of the log file
-LOG_FILE = "RSTA_Output.txt"
+LOG_FILE = "results/log_results/RSTA_Output.log"
 
 # Constant for popping in send queue
 TOP_NODE = 0
@@ -21,22 +23,20 @@ RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
 Q = []
 
 def setBIDs(G, root):
-    logFile = open(LOG_FILE, "w")
     IDCount = 0
 
     for node in G:
         G.nodes[node]['BID'] = chr(65 + IDCount)
     
         if(node == root):
-            logFile.write("Root node is {0}, BID = {1}\n".format(node, G.nodes[node]['BID']))
+            logging.debug("Root node is {0}, BID = {1}\n".format(node, G.nodes[node]['BID']))
 
         else:
-            logFile.write("Non-Root node {0}, BID = {1}\n".format(node, G.nodes[node]['BID']))
+            logging.debug("Non-Root node {0}, BID = {1}\n".format(node, G.nodes[node]['BID']))
 
         IDCount += 1
 
-    logFile.write("---------\n\n")
-    logFile.close()
+    logging.debug("---------\n\n")
 
     return
 
@@ -62,7 +62,9 @@ Input:  Graph G, root node r
 
 Output: Parent structure, which will create a shortest path tree
 '''
-def init(G, r):
+def init(G, r, loggingStatus):
+    setLoggingLevel(loggingStatus)
+
     setBIDs(G, r)
 
     Q.append(r)
@@ -84,7 +86,7 @@ def init(G, r):
 
     for v in G:
         formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n{roles}\n"
-        print(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), roles=prettyEdgeRolesOutput(G,v)))
+        logging.debug(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), roles=prettyEdgeRolesOutput(G,v)))
 
     return
 
@@ -140,3 +142,11 @@ def senderVectorIsSuperior(senderVector, receiverVector):
         isSuperior = True
 
     return isSuperior
+
+def setLoggingLevel(requiresLogging):
+    if(requiresLogging):
+        logging.basicConfig(format='%(message)s', filename=LOG_FILE, filemode='w', level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    return

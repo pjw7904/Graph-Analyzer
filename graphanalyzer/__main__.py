@@ -1,6 +1,6 @@
 # Standard modules
 import argparse # Parsing command-line arguments
-import sys
+import sys # Access to system-level functions
 
 # External modules
 import networkx as nx # Graph creation and analysis
@@ -23,6 +23,9 @@ def parseArgs():
 
     # The source of the graph
     argParser.add_argument("-s", "--source", nargs='*')
+
+    # If logging should be performed in a text file
+    argParser.add_argument("--log", action="store_true")
 
     # Calculating graph metrics
     argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
@@ -137,7 +140,7 @@ stepValues = [] # For any step that required some sort of computation, whether i
 
 # Running the algorithms in their most up-to-date form:
 if(args.STA):
-    RSTA.init(G, args.STA)
+    RSTA.init(G, args.STA, args.log)
     #STA.RSTA(G, args.STA)
     #xAxisLabels.append("RSTA")
     #yAxisValues.append(G.graph["RSTA"])
