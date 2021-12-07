@@ -10,12 +10,6 @@ LOG_FILE = "results/log_results/RSTA_Output.log"
 # Constant for popping in send queue
 TOP_NODE = 0
 
-# Port Role [state]. Setup: [ VERTEX [role]]------edge------[[role] VERTEX ]
-DESIGNATED_ROLE = "Designated [FWD]" # Superior vertex on edge, forwards traffic, always one on each link
-ROOT_ROLE       = "Root [FWD]"       # Best edge on node, forwards traffic
-ALT_ROLE        = "Alternate [BLK]"  # Inferior vertex on edge, blocks traffic
-STARTING_ROLE   = "Undefined [N/A]"  # Starting role, role undefined at startup
-
 # Vector that is exchanged between vertices to determine tree structure
 RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
 
@@ -72,21 +66,18 @@ def init(G, r, loggingStatus):
     for v in G:
         G.nodes[v]['VV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
         G.nodes[v]['PV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
-        G.nodes[v]['AV'] = None
-
-        for edge in list(G.edges(v)): 
-            G.nodes[v][edge] = STARTING_ROLE
+        G.nodes[v]['AV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
 
     G.nodes[r]['VV'] = RSTAVector(0, G.nodes[r]['BID'])
     G.nodes[r]['PV'] = RSTAVector(0, G.nodes[r]['BID'])
-    G.nodes[r]['AV'] = None # This will stay null, as r is the root
+    G.nodes[r]['AV'] = RSTAVector(0, G.nodes[r]['BID'])
 
     s = Q.pop(TOP_NODE)
     sendVertexVector(G, r, s)
 
     for v in G:
-        formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n{roles}\n"
-        logging.debug(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), roles=prettyEdgeRolesOutput(G,v)))
+        formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n\tAV({BID}) = {AV}\n"
+        logging.debug(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), AV=prettyVectorOutput(G,v, "AV")))
 
     return
 
@@ -100,27 +91,15 @@ def sendVertexVector(G, r, s):
         VV_s_prime = RSTAVector(G.nodes[s]['VV'].RPC + 1, G.nodes[s]['BID'])
         VV_x_prime = RSTAVector(G.nodes[x]['VV'].RPC + 1, G.nodes[x]['BID'])
 
-        s_x_edge = (s, x)
-        x_s_edge = (x, s)
+        if(senderVectorIsSuperior(VV_s_prime, VV_x_prime) and senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
+            updatedVector = True
 
-        if(senderVectorIsSuperior(VV_s_prime, VV_x_prime)):
-            G.nodes[s][s_x_edge] = DESIGNATED_ROLE
+            G.nodes[x]['AV'] = G.nodes[x]['PV']          
+            G.nodes[x]['PV'] = G.nodes[s]['VV']
+            G.nodes[x]['VV'] = RSTAVector(VV_s_prime.RPC, G.nodes[x]['BID'])
 
-            if(senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
-                G.nodes[x][x_s_edge] = ROOT_ROLE
-                updatedVector = True
-              
-                for edge in list(G.edges(x)):
-                    if(edge != (x, s)):
-                        G.nodes[x][edge] = ALT_ROLE
-               
-                G.nodes[x]['PV'] = G.nodes[s]['VV']
-                G.nodes[x]['VV'] = RSTAVector(VV_s_prime.RPC, G.nodes[x]['BID'])
-
-        else:
-            if(G.nodes[x][x_s_edge] != DESIGNATED_ROLE):
-                G.nodes[x][x_s_edge] = DESIGNATED_ROLE
-                updatedVector = True
+        elif(VV_s_prime.BID != G.nodes[x]['PV'].BID and senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['AV'])):
+            G.nodes[x]['AV'] = G.nodes[s]['VV'] 
 
         if(updatedVector):
             Q.append(x)
