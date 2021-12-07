@@ -27,6 +27,9 @@ def parseArgs():
     # If logging should be performed in a text file
     argParser.add_argument("--log", action="store_true")
 
+    # If a proper experiement needs to be tested
+    argParser.add_argument("--test", action="store_true")
+
     # Calculating graph metrics
     argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
     argParser.add_argument("--CalcBC", action="store_true") # Compute betweenness centrality for each vertex
@@ -51,7 +54,8 @@ def parseArgs():
     # Get figures/plots of data collected
     argParser.add_argument("--stats") # Argument of the name of the topology
 
-    # Allow the user to remove an edge from the graph. The algorithm being run will determine what happens based on that removed edge input
+    # Allow the user to remove an edge from the graph. 
+    # The algorithm being run will determine what happens based on that removed edge input
     argParser.add_argument("-r", "--remove", nargs=2)
 
     # Parse the arguments
@@ -88,6 +92,15 @@ def generateGraph(sourceInput):
         sys.exit("Error: invalid source, please try again using RSPEC, graphml, random, or simulation")
 
     return G
+
+'''
+Erdős–Rényi G(n,p) graph model
+n = Number of verticies
+p = Probability of edge creation between two nodes
+'''
+def generateErdosRenyiGraph(n, p):
+    return nx.gnp_random_graph(n, p, seed=None, directed=False)
+
 
 def computeMetrics(calcOptions, G):
     if(calcOptions["Classical"]):
@@ -130,13 +143,32 @@ algorithmOptions = {
 # |Type       | Self-Loops | Parallel Edges|
 # |Undirected | No         | No            |
 #######
-G = generateGraph(args.source) # Generate a graph to use for calculations
+if(args.test):
+    notFinished = True
+    testCounter = 0
+
+    while(notFinished):
+        testCounter += 1
+        G = generateErdosRenyiGraph(50, .5)
+
+        if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
+            MTA_RP.init(G, 0, False)
+            result = MTA_RP.validateInitConvergence(G, 0)
+            print("test {0}: {1}".format(testCounter, result))
+
+            if(testCounter == 5):
+                notFinished = False
+                nx.draw(G, with_labels=True)
+                plt.show()
+else:
+    G = generateGraph(args.source) # Generate a graph to use for calculations
 
 # Define structures to collect X and Y axis info for statistics
 xAxisLabels = []
 yAxisValues = []
 recvValues = [] # For receiving important info, not number of times sent
 stepValues = [] # For any step that required some sort of computation, whether it resulted in a modified state or not
+
 
 # Running the algorithms in their most up-to-date form:
 if(args.STA):
@@ -148,7 +180,7 @@ if(args.STA):
     #stepValues.append(G.graph["RSTA_step"])
 
 if(args.MTA):
-    MTA_RP.MTA_init(G, args.MTA)
+    MTA_RP.init(G, args.MTA, args.log)
     xAxisLabels.append("MTA")
     yAxisValues.append(G.graph["MTA"])
     recvValues.append(G.graph["MTA_recv"])
