@@ -91,15 +91,17 @@ def sendVertexVector(G, r, s):
         VV_s_prime = RSTAVector(G.nodes[s]['VV'].RPC + 1, G.nodes[s]['BID'])
         VV_x_prime = RSTAVector(G.nodes[x]['VV'].RPC + 1, G.nodes[x]['BID'])
 
-        if(senderVectorIsSuperior(VV_s_prime, VV_x_prime) and senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
-            updatedVector = True
+        if(senderVectorIsSuperior(VV_s_prime, VV_x_prime)):
+            if(senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
+                updatedVector = True
 
-            G.nodes[x]['AV'] = G.nodes[x]['PV']          
-            G.nodes[x]['PV'] = G.nodes[s]['VV']
-            G.nodes[x]['VV'] = RSTAVector(VV_s_prime.RPC, G.nodes[x]['BID'])
+                G.nodes[x]['AV'] = G.nodes[x]['PV']          
+                G.nodes[x]['PV'] = G.nodes[s]['VV']
+                G.nodes[x]['VV'] = RSTAVector(VV_s_prime.RPC, G.nodes[x]['BID'])
 
-        elif(VV_s_prime.BID != G.nodes[x]['PV'].BID and senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['AV'])):
-            G.nodes[x]['AV'] = G.nodes[s]['VV'] 
+            # VV_s_prime.BID != G.nodes[x]['PV'].BID and
+            elif(senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['AV'])):
+                G.nodes[x]['AV'] = G.nodes[s]['VV'] 
 
         if(updatedVector):
             Q.append(x)
