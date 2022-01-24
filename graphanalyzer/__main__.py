@@ -94,7 +94,7 @@ def generateGraph(sourceInput):
     return G
 
 '''
-Erdős–Rényi G(n,p) graph model
+Erdős-Rényi G(n,p) graph model
 n = Number of verticies
 p = Probability of edge creation between two nodes
 '''
@@ -145,21 +145,24 @@ algorithmOptions = {
 #######
 if(args.test):
     notFinished = True
-    testCounter = 0
+    testCounter = 1
+    numOfNodes = 25
 
     while(notFinished):
-        testCounter += 1
-        G = generateErdosRenyiGraph(50, .5)
+        G = generateErdosRenyiGraph(numOfNodes, .5)
 
         if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
-            MTA_RP.init(G, 0, False)
+            MTA_RP.init(G, 0, True, True, numOfNodes)
             result = MTA_RP.validateInitConvergence(G, 0)
-            print("test {0}: {1}".format(testCounter, result))
+            print("test {0}: {1}, {2} {3}".format(testCounter, result, G.number_of_nodes(), G.number_of_edges()))
 
-            if(testCounter == 5):
+            testCounter += 1
+            numOfNodes += 1
+
+            if(testCounter == 27):
                 notFinished = False
-                nx.draw(G, with_labels=True)
-                plt.show()
+                #nx.draw(G, with_labels=True)
+                #plt.show()
 else:
     G = generateGraph(args.source) # Generate a graph to use for calculations
 
