@@ -16,6 +16,7 @@ import RSTA
 import DA # Dijkstra's algorithm simulation
 import ClassicalMetrics
 import GraphGenerator
+from plotBatchTest import plotResults
 
 def parseArgs():
     # ArgumentParser object to read in command-line arguments
@@ -27,8 +28,9 @@ def parseArgs():
     # If logging should be performed in a text file
     argParser.add_argument("--log", action="store_true")
 
-    # If a proper experiement needs to be tested
-    argParser.add_argument("--test", action="store_true")
+    # If a formal experiement with a large number of graphs is needed
+    # 0 = # vertex or edge (k-regular), 1 = min value, 2 = max value
+    argParser.add_argument("-t", "--test", nargs='*')
 
     # Calculating graph metrics
     argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
@@ -48,8 +50,8 @@ def parseArgs():
     # Dijkstra's Algorithm
     argParser.add_argument("--DA") # Argument of the root of the SPT
 
-    # Get a visual of the generated graph
-    argParser.add_argument("--ShowPic", action="store_true")
+    # Get a visual of the batch test results
+    argParser.add_argument("--plot", action="store_true")
 
     # Get figures/plots of data collected
     argParser.add_argument("--stats") # Argument of the name of the topology
@@ -122,56 +124,99 @@ def main():
     # Read in command-line arguments
     args = parseArgs()
 
+    # Create a structure to hold graphs for batch testing (if needed)
+    graphList = [] # A place to hold ya graphs
+
     if(args.test):
+        if(len(args.test) < 3):
+            print("error: Missing test arguments")
+            sys.exit(0)
+
+        testType = args.test[0]
+        minValue = args.test[1]
+        maxValue = int(args.test[2])
+
         notFinished = True
-        testCounter = 1
-        numOfNodes = 25
-        numOfEdges = 4
 
-        while(notFinished):
-            G = GraphGenerator.generateErdosRenyiGraph(numOfNodes, .5,  inputSeed=6)
+        # Scale the number of vertices
+        if(testType == "vertex"):
+            numberOfVerticies = int(minValue)
 
-            if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
-                #MTP_NPaths.init(G, 0, True, True)
-                #result = MTA_RP.validateInitConvergence(G, 0)
-                #print("test {0}: {1}, {2} {3}".format(testCounter, result, G.number_of_nodes(), G.number_of_edges()))
-                #print("test {0}: {1}, {2} {3}".format(testCounter, "true", G.number_of_nodes(), G.number_of_edges()))
-                #print(nx.weisfeiler_lehman_graph_hash(G))
-                #print(nx.adjacency_matrix(G).todense())
+            if(args.test[3]):
+                edgeProb = float(args.test[3])
+            else:
+                edgeProb = .5
 
-                testCounter += 1
-                numOfNodes += 1
-                #numOfEdges += 1
+            if(args.test[4] != "None"):
+                seed = int(args.test[4])
+            else:
+                seed = None
 
-                #nx.draw(G, with_labels=True)
-                #plt.show()
+            while(notFinished):
+                G = GraphGenerator.generateErdosRenyiGraph(numberOfVerticies, edgeProb, inputSeed=seed)
 
-                if(testCounter == 10):
-                    notFinished = False
+                if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
+                    graphList.append(G)
+                    numberOfVerticies += 1
+
+                    if(numberOfVerticies == maxValue+1):
+                        notFinished = False
+
+        # Scale the number of edges
+        elif(testType == "edge"):
+            numberOfEdges = int(minValue)
+
+            if(args.test[3]):
+                numberOfVerticies = int(args.test[3])
+            else:
+                print("error: must include # of verticies for k-regular test")
+                sys.exit()
+
+            if(numberOfVerticies % 2 != 0):
+                print("error: k-regular tests must have an even number of vertices")
+                sys.exit()
+
+            if(args.test[4] != "None"):
+                seed = int(args.test[4])
+            else:
+                seed = None
+
+            while(notFinished):
+                G = GraphGenerator.generateRegularGraph(numberOfEdges, numberOfVerticies, inputSeed=seed)
+
+                if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
+                    graphList.append(G)
+                    numberOfEdges += 1
+
+                    if(numberOfEdges == maxValue+1):
+                        notFinished = False
+        '''
+        for graph in graphList:
+            print(nx.weisfeiler_lehman_graph_hash(graph))
+            print(graph.number_of_nodes())
+            print(graph.number_of_edges())
+        '''
 
     else:
         G = generateGraph(args.source) # Generate a graph to use for calculations
 
-    # Define structures to collect X and Y axis info for statistics
-    xAxisLabels = []
-    yAxisValues = []
-    recvValues = [] # For receiving important info, not number of times sent
-    stepValues = [] # For any step that required some sort of computation, whether it resulted in a modified state or not
-
-
-    # Running the algorithms in their most up-to-date form:
+    # Run one of the algorithms for initial SPT convergence
+    # Rapid Spanning Tree Algorithm
     if(args.RSTA):
         RSTA.init(G, args.RTSA, args.log)
 
-    if(args.NPaths):
-        MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
+    # Meshed Tree Algorithm - N-Paths
+    elif(args.NPaths):
+        if(args.test):
+            for graph in graphList:
+                MTP_NPaths.init(Graph=graph, root=0, loggingStatus=True, batch=True)
+            plotName = "MTA N-Paths"
+        else:
+            MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
 
-    if(args.MTA):
+    # Meshed Tree Algorithm - Remedy Paths 
+    elif(args.MTA):
         MTA_RP.init(G, args.MTA, args.log)
-        xAxisLabels.append("MTA")
-        yAxisValues.append(G.graph["MTA"])
-        recvValues.append(G.graph["MTA_recv"])
-        stepValues.append(G.graph["MTA_step"])
 
         if(args.remove):            
             if (len(args.remove) == 2):
@@ -187,16 +232,12 @@ def main():
                 print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
                 sys.exit(0)
 
-    if(args.DA):
+    # Dijkstra's Algorithm
+    elif(args.DA):
         DA.DA(G, args.DA)
-        xAxisLabels.append("DA")
-        yAxisValues.append(G.graph["DA"])
-        recvValues.append(G.graph["DA_recv"])
-        stepValues.append(G.graph["DA_step"])
 
-    if(args.ShowPic):
-        nx.draw(G, with_labels=True)
-        plt.show()
+    if(args.plot):
+        plotResults(plotName)
 
 if __name__ == "__main__":
     main()
