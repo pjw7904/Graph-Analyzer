@@ -10,9 +10,9 @@ import copy # Get the ability to perform a deep copy
 #
 TOP_NODE = 0
 LOG_FILE = "results/log_results/MTA_RP_Output.log"
-LOG_FILE_BATCH = "results/log_results/MTA_RP_Output_batch.log"
+LOG_FILE_BATCH = "results/log_results/batch_test.log"
 
-def init(Graph, root, loggingStatus, batch=False, numOfNodes=0):
+def init(Graph, root, loggingStatus, batch=False):
     # Startup tasks
     setLoggingLevel(loggingStatus, batch)
     defineMetrics(Graph)
@@ -22,11 +22,13 @@ def init(Graph, root, loggingStatus, batch=False, numOfNodes=0):
     for vertex in Graph:
         if vertex != root: # 
             Graph.nodes[vertex]['pathBundle'] = []
+            Graph.nodes[vertex]['done'] = False
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
         # The root vertex is given a path bundle of itself, which is the only path it will contain
         else:
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
+            Graph.nodes[vertex]['done'] = True
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
         Graph.nodes[vertex]['updateCounter'] = 0 # Counts the number of times a node has to send an update to a neighbor
@@ -55,7 +57,7 @@ def init(Graph, root, loggingStatus, batch=False, numOfNodes=0):
     Graph.graph["MTA_time"] = endTime - startTime
 
     # For batch testing
-    logging.error("{0},{1}".format(numOfNodes, Graph.graph["MTA_step"]))
+    logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
 
     return
 
@@ -135,7 +137,7 @@ def send(v, Graph, root, sendQueue, queueCounter):
 
     # For each neighbor x of the vertex currently sending an update (vertex v), send them the path bundle
     for x in Graph.neighbors(v):
-        if x != root:
+        if Graph.nodes[x]['done'] == False:
             # Update the log file about the neighbors current situation
             logging.warning("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
             logging.warning("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
@@ -144,8 +146,8 @@ def send(v, Graph, root, sendQueue, queueCounter):
             pathsReceived = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
             validPaths = list(dict.fromkeys(pathsReceived)) # remove duplicates
             
-            Graph.graph["MTA_step"] += 1 # 12/8: validation is two steps for each path in path bundle
-            logging.warning("\t{0} Valid paths received: {1}\n".format(Graph.graph["MTA_step"], validPaths))
+            Graph.graph["step"] += 1 # 12/8: validation is two steps for each path in path bundle
+            logging.warning("\t{0} Valid paths received: {1}\n".format(Graph.graph["step"], validPaths))
 
             # The receiving node now processes the valid paths in the bundle it has collected
             isChild = processBundle(x, v, Graph, validPaths, sendQueue)
@@ -167,8 +169,8 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
     # Form a great bundle B(v) by merging the path bundle with the paths from the calling vertex
     greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=lambda x: (len(x), x)))
 
-    Graph.graph["MTA_step"] += 1
-    logging.warning("\t{0} Great bundle post-merge: {1}\n".format(Graph.graph["MTA_step"], greatBundle))
+    Graph.graph["step"] += 1
+    logging.warning("\t{0} Great bundle post-merge: {1}\n".format(Graph.graph["step"], greatBundle))
 
     # Remove the preferred path and create a new path bundle with it.
     P = copy.deepcopy(greatBundle[0])
@@ -196,8 +198,8 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
         remedySet = getPathEdgeSet(Q)
         T = [edge for edge in S if edge not in remedySet]
 
-        Graph.graph["MTA_step"] += 1
-        logging.warning("\t{0} Remedy Set ( T = s - E(Q) ): {1}\n".format(Graph.graph["MTA_step"], T))
+        Graph.graph["step"] += 1
+        logging.warning("\t{0} Remedy Set ( T = s - E(Q) ): {1}\n".format(Graph.graph["step"], T))
 
         if(T):
             Graph.nodes[x]['newPathBundle'].append(Q)
@@ -207,8 +209,11 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
             # S now contains the remaining edges still in need of a remedy
             S = [edge for edge in S if edge not in T]
 
-            Graph.graph["MTA_step"] += 1
-            logging.warning("\t{0} Updated S for remaining edges in need of a remedy: {1}\n".format(Graph.graph["MTA_step"], S))
+            Graph.graph["step"] += 1
+            logging.warning("\t{0} Updated S for remaining edges in need of a remedy: {1}\n".format(Graph.graph["step"], S))
+
+    if not S:
+        Graph.nodes[x]['done'] = True
 
     # If the new path bundle is different from the previous one, then the vertex must announce the new path bundle to neighbors
     if Graph.nodes[x]['newPathBundle'] != Graph.nodes[x]['pathBundle']:
@@ -236,7 +241,7 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
 def defineMetrics(Graph):
     Graph.graph["MTA"] = 0      # count number of iterations needed
     Graph.graph["MTA_recv"] = 0 # count number of times a node receives important information (don't consider)
-    Graph.graph["MTA_step"] = 0 # count the number of times a node processes ingress information
+    Graph.graph["step"] = 0 # count the number of times a node processes ingress information
     Graph.graph["MTA_time"] = 0 # Elasped algorithm simulation execution time
 
     return

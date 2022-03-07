@@ -3,14 +3,18 @@ DIJKSTRA'S ALGORITHM
 ==========================='''
 from networkx import get_node_attributes
 from timeit import default_timer as timer # Get elasped time of execution
+import logging
 
 # Location/name of the log file
-LOG_FILE = "DA_Output.txt"
+LOG_FILE = "results/log_results/DA_Output.log"
+LOG_FILE_BATCH = "results/log_results/batch_test.log"
 
-def DA(Graph, source):
+def init(Graph, source, loggingStatus, batch=False):
+    setLoggingLevel(loggingStatus, batch)
+
     Graph.graph["DA"] = 0 # count number of iterations needed
     Graph.graph["DA_recv"] = 0
-    Graph.graph["DA_step"] = 0
+    Graph.graph["step"] = 0
     Graph.graph["DA_time"] = 0 # Elasped algorithm simulation execution time
 
     logFile = open(LOG_FILE, "w")
@@ -36,8 +40,9 @@ def DA(Graph, source):
 
         # get the node with the lowest distance value, which starts with the root/source
         v = min(Q, key=Q.get)
+        Graph.graph["step"] += 1
 
-        logDAEvent("---------\n({0}) Visted Node: {1} | Distance: {2}\n".format(Graph.graph["DA"], v, Q[v]), logFile)    
+        logDAEvent("---------\n({0}) Visted Node: {1} | Distance: {2}\n".format(Graph.graph["DA"], v, Q[v]))    
 
         # Now that the node has been "visted", it is deleted from the unvisited set
         del Q[v]
@@ -45,35 +50,38 @@ def DA(Graph, source):
         # For each neighbor of v, update the distance from the root if it is lower than the previous distance
         for u in Graph.neighbors(v):
             neighborInfo = "\t({0})[distance: {1} | parent: {2}]: ".format(u, Graph.nodes[u]["dist"], Graph.nodes[u]["parent"])
-            
+
             if u in Q:
                 alt = Graph.nodes[v]["dist"] + EDGE_COST # distance = distance of v + 1 (unweighted edge cost)
 
-                Graph.graph["DA_step"] += 1
-                
+                Graph.graph["step"] += 1
                 if alt < Graph.nodes[u]["dist"]:
                     Graph.nodes[u]["dist"] = alt
                     Graph.nodes[u]["parent"] = v # parent node is now v, as that it how it gets back to root
                     Q[u] = alt
-                    neighborInfo += "({0})distance ---> {1} | parent ---> {2}\n".format(Graph.graph["DA_step"], alt, v)
+                    neighborInfo += "({0})distance ---> {1} | parent ---> {2}\n".format(Graph.graph["step"], alt, v)
 
+                    Graph.graph["step"] += 2
                     Graph.graph["DA_recv"] += 1
                 
                 else:
-                    neighborInfo += "({0})no change, higher cost path\n".format(Graph.graph["DA_step"])
+                    neighborInfo += "({0})no change, higher cost path\n".format(Graph.graph["step"])
             else:
                 neighborInfo += "already visited\n"
             
-            logDAEvent(neighborInfo, logFile)
+            logDAEvent(neighborInfo)
 
     # STOP TIMER
     endTime = timer()
 
+    # For batch testing
+    logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]*Graph.number_of_nodes()))
+
     # log the resulting SPT and its associated data (node distance + parent)
     result = getNodeInfo(Graph)
-    logDAEvent("\n=====RESULT=====\n" + result, logFile)
+    logDAEvent("\n=====RESULT=====\n" + result)
 
-    logDAEvent("\nTime to execute: {0}".format(endTime - startTime), logFile)
+    logDAEvent("\nTime to execute: {0}".format(endTime - startTime))
     Graph.graph["DA_time"] = endTime - startTime
 
     logFile.close()
@@ -91,7 +99,18 @@ def getNodeInfo(Graph):
 
 
 # Log a given DA event
-def logDAEvent(eventMsg, logFile):
-    logFile.write(eventMsg)
+def logDAEvent(eventMsg):
+    logging.warning(eventMsg)
+
+    return
+
+def setLoggingLevel(requiresLogging, batch):
+    if(requiresLogging):
+        if(batch):
+            logging.basicConfig(format='%(message)s', filename=LOG_FILE_BATCH, filemode='a', level=logging.ERROR) 
+        else:
+            logging.basicConfig(format='%(message)s', filename=LOG_FILE, filemode='w', level=logging.WARNING)
+    else:
+        logging.basicConfig(level=logging.CRITICAL)
 
     return

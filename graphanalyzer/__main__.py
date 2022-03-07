@@ -203,6 +203,10 @@ def main():
     # Run one of the algorithms for initial SPT convergence
     # Rapid Spanning Tree Algorithm
     if(args.RSTA):
+        if(args.test):
+            for graph in graphList:
+                RSTA.init(G=G, r=0, loggingStatus=True, batch=True)
+            plotName = "RSTA"
         RSTA.init(G, args.RTSA, args.log)
 
     # Meshed Tree Algorithm - N-Paths
@@ -216,25 +220,35 @@ def main():
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.MTA):
-        MTA_RP.init(G, args.MTA, args.log)
+        if(args.test):
+            for graph in graphList:
+                MTA_RP.init(Graph=G, root=0, loggingStatus=True, batch=True)
+            plotName = "MTA Remedy"
+        else:
+            MTA_RP.init(G, args.MTA, args.log)
 
-        if(args.remove):            
-            if (len(args.remove) == 2):
-                try:
-                    G.remove_edge(args.remove[0], args.remove[1])
-                except NetworkXError:
-                    print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+            if(args.remove):            
+                if (len(args.remove) == 2):
+                    try:
+                        G.remove_edge(args.remove[0], args.remove[1])
+                    except NetworkXError:
+                        print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+                        sys.exit(0)
+
+                    MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
+
+                else:
+                    print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
                     sys.exit(0)
-
-                MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
-
-            else:
-                print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
-                sys.exit(0)
 
     # Dijkstra's Algorithm
     elif(args.DA):
-        DA.DA(G, args.DA)
+        if(args.test):
+            for graph in graphList:
+                DA.init(Graph=graph, source=0, loggingStatus=True, batch=True)
+            plotName = "Dijkstra's Algo"
+        else:
+            DA.init(Graph=G, source=args.DA)
 
     if(args.plot):
         plotResults(plotName)
