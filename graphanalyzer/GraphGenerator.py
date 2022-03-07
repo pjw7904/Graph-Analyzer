@@ -24,8 +24,8 @@ n = Number of verticies
 p = Probability of edge creation between two nodes
 seed = seed value for generation
 '''
-def generateErdosRenyiGraph(n, p, seed=None):
-    return nx.gnp_random_graph(n, p, seed=seed, directed=False)
+def generateErdosRenyiGraph(n, p, inputSeed=None):
+    return nx.gnp_random_graph(n, p, seed=inputSeed, directed=False)
 
 '''
 Ring Graph
