@@ -110,159 +110,93 @@ def computeMetrics(calcOptions, G):
     return
 
 '''
-main
-'''
-# Read in command-line arguments
-args = parseArgs()
-
-# Structure to hold what metrics the user wants calcuated
-metricOptions = {
-    "Classical": args.CalcClassicalMetrics,
-    "BC": args.CalcBC,
-    "AvgNC": args.CalcAvgNC
-}
-
-# Structure to hold all available network-based graph algorithm options
-algorithmOptions = {
-    "STA": args.RSTA,
-    "MTA_RP": args.MTA,
-    "DA": args.DA
-}
-
 #######
+main 
+#######
+
 # NetworkX Graph In Use:
 # |Type       | Self-Loops | Parallel Edges|
 # |Undirected | No         | No            |
-#######
-if(args.test):
-    notFinished = True
-    testCounter = 1
-    numOfNodes = 25
-    numOfEdges = 4
+'''
+def main():
+    # Read in command-line arguments
+    args = parseArgs()
 
-    while(notFinished):
-        G = GraphGenerator.generateErdosRenyiGraph(numOfNodes, .5,  inputSeed=6)
+    if(args.test):
+        notFinished = True
+        testCounter = 1
+        numOfNodes = 25
+        numOfEdges = 4
 
-        if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
-            #MTP_NPaths.init(G, 0, True, True)
-            #result = MTA_RP.validateInitConvergence(G, 0)
-            #print("test {0}: {1}, {2} {3}".format(testCounter, result, G.number_of_nodes(), G.number_of_edges()))
-            #print("test {0}: {1}, {2} {3}".format(testCounter, "true", G.number_of_nodes(), G.number_of_edges()))
-            #print(nx.weisfeiler_lehman_graph_hash(G))
-            #print(nx.adjacency_matrix(G).todense())
+        while(notFinished):
+            G = GraphGenerator.generateErdosRenyiGraph(numOfNodes, .5,  inputSeed=6)
 
-            degrees = [val for (node, val) in G.degree()]
-            delta_G = min(degrees)
-            print("O = {0} | # of vertices = {1} | Delta G = {2}".format(G.number_of_nodes() * delta_G, G.number_of_nodes(), delta_G))
+            if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
+                #MTP_NPaths.init(G, 0, True, True)
+                #result = MTA_RP.validateInitConvergence(G, 0)
+                #print("test {0}: {1}, {2} {3}".format(testCounter, result, G.number_of_nodes(), G.number_of_edges()))
+                #print("test {0}: {1}, {2} {3}".format(testCounter, "true", G.number_of_nodes(), G.number_of_edges()))
+                #print(nx.weisfeiler_lehman_graph_hash(G))
+                #print(nx.adjacency_matrix(G).todense())
 
-            testCounter += 1
-            numOfNodes += 1
-            #numOfEdges += 1
+                testCounter += 1
+                numOfNodes += 1
+                #numOfEdges += 1
 
-            #nx.draw(G, with_labels=True)
-            #plt.show()
+                #nx.draw(G, with_labels=True)
+                #plt.show()
 
-            if(testCounter == 10):
-                notFinished = False
+                if(testCounter == 10):
+                    notFinished = False
 
-else:
-    G = generateGraph(args.source) # Generate a graph to use for calculations
+    else:
+        G = generateGraph(args.source) # Generate a graph to use for calculations
 
-# Define structures to collect X and Y axis info for statistics
-xAxisLabels = []
-yAxisValues = []
-recvValues = [] # For receiving important info, not number of times sent
-stepValues = [] # For any step that required some sort of computation, whether it resulted in a modified state or not
+    # Define structures to collect X and Y axis info for statistics
+    xAxisLabels = []
+    yAxisValues = []
+    recvValues = [] # For receiving important info, not number of times sent
+    stepValues = [] # For any step that required some sort of computation, whether it resulted in a modified state or not
 
 
-# Running the algorithms in their most up-to-date form:
-if(args.RSTA):
-    RSTA.init(G, args.RTSA, args.log)
+    # Running the algorithms in their most up-to-date form:
+    if(args.RSTA):
+        RSTA.init(G, args.RTSA, args.log)
 
-if(args.NPaths):
-    MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
+    if(args.NPaths):
+        MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
 
-if(args.MTA):
-    MTA_RP.init(G, args.MTA, args.log)
-    xAxisLabels.append("MTA")
-    yAxisValues.append(G.graph["MTA"])
-    recvValues.append(G.graph["MTA_recv"])
-    stepValues.append(G.graph["MTA_step"])
+    if(args.MTA):
+        MTA_RP.init(G, args.MTA, args.log)
+        xAxisLabels.append("MTA")
+        yAxisValues.append(G.graph["MTA"])
+        recvValues.append(G.graph["MTA_recv"])
+        stepValues.append(G.graph["MTA_step"])
 
-    if(args.remove):            
-        if (len(args.remove) == 2):
-            try:
-                G.remove_edge(args.remove[0], args.remove[1])
-            except NetworkXError:
-                print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+        if(args.remove):            
+            if (len(args.remove) == 2):
+                try:
+                    G.remove_edge(args.remove[0], args.remove[1])
+                except NetworkXError:
+                    print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+                    sys.exit(0)
+
+                MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
+
+            else:
+                print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
                 sys.exit(0)
 
-            MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
+    if(args.DA):
+        DA.DA(G, args.DA)
+        xAxisLabels.append("DA")
+        yAxisValues.append(G.graph["DA"])
+        recvValues.append(G.graph["DA_recv"])
+        stepValues.append(G.graph["DA_step"])
 
-        else:
-            print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
-            sys.exit(0)
+    if(args.ShowPic):
+        nx.draw(G, with_labels=True)
+        plt.show()
 
-if(args.DA):
-    DA.DA(G, args.DA)
-    xAxisLabels.append("DA")
-    yAxisValues.append(G.graph["DA"])
-    recvValues.append(G.graph["DA_recv"])
-    stepValues.append(G.graph["DA_step"])
-
-if(args.stats):
-    plt.figure()
-    plt.bar(xAxisLabels, yAxisValues)
-
-    plt.title("Sender Iterations to Output SPT - {0}".format(args.stats))
-    plt.ylabel("Iteration count")
-    plt.xlabel("SPT Algorithm")
-
-    for index, value in enumerate(yAxisValues):
-        plt.text(value, index, str(value), color='black')
-        print(str(value))
-
-    plt.figure()
-    plt.bar(xAxisLabels, recvValues)
-    plt.title("Node State Modifications - {0}".format(args.stats))
-    plt.ylabel("Modifications")
-    plt.xlabel("SPT Algorithm")
-
-    plt.figure()
-    plt.bar(xAxisLabels, stepValues)
-    plt.title("Distributed Computational Steps - {0}".format(args.stats))
-    plt.ylabel("steps")
-    plt.xlabel("SPT Algorithm")
-
-    plt.show()
-
-if(args.GetVIDs):
-    G_MT = G.to_directed() # Graph Meshed Tree (G_MT)
-
-    MT_root = args.GetVIDs # The root of the meshed tree
-    numOfVIDs = None
-
-    if(args.numOfVIDs):
-        numOfVIDs = args.numOfVIDs
-
-    possibleVIDs = {}
-    PVID         = {}
-
-    MT_VIDs_Utils.createMeshedTreeTable(G_MT)
-    MT_VIDs_Utils.addInterfaceNums(G_MT)
-
-    # Generating the possible VIDs from each non-root node
-    for currentNode in G_MT:
-        possibleVIDs, PVID = MT_VIDs_Utils.generatePossibleVIDs(G_MT, MT_root, currentNode, numOfVIDs=numOfVIDs)
-        G_MT.nodes[currentNode]['VIDTable'].update(possibleVIDs)
-        G_MT.nodes[currentNode]['PVID'].update(PVID)
-
-    #PVIDColors = nx.get_node_attributes(G_MT, "PVID")
-    #activeLinks = [list(PVIDColors[node].keys())[0] for node in G_MT.nodes if node != MT_root]
-    #colorBroadcastTree = ['black' if e in activeLinks else 'white' for e in G_MT.edges]
-    #nx.draw(G_MT, with_labels=True, edge_color=colorBroadcastTree, font_weight='bold', labels = PVIDColors)
-    #plt.show()
-
-if(args.ShowPic):
-    nx.draw(G, with_labels=True)
-    plt.show()
+if __name__ == "__main__":
+    main()
