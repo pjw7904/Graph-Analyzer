@@ -205,9 +205,24 @@ def main():
     if(args.RSTA):
         if(args.test):
             for graph in graphList:
-                RSTA.init(G=G, r=0, loggingStatus=True, batch=True)
+                RSTA.init(G=graph, r=0, loggingStatus=True, batch=True)
             plotName = "RSTA"
-        RSTA.init(G, args.RTSA, args.log)
+        else:
+            RSTA.init(G, args.RSTA, args.log)
+
+            if(args.remove):            
+                if (len(args.remove) == 2):
+                    try:
+                        G.remove_edge(args.remove[0], args.remove[1])
+                    except NetworkXError:
+                        print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+                        sys.exit(0)
+
+                    RSTA.reconverge(G, args.RSTA, args.remove[0], args.remove[1])
+
+                else:
+                    print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
+                    sys.exit(0)
 
     # Meshed Tree Algorithm - N-Paths
     elif(args.NPaths):
@@ -222,7 +237,7 @@ def main():
     elif(args.MTA):
         if(args.test):
             for graph in graphList:
-                MTA_RP.init(Graph=G, root=0, loggingStatus=True, batch=True)
+                MTA_RP.init(Graph=graph, root=0, loggingStatus=True, batch=True)
             plotName = "MTA Remedy"
         else:
             MTA_RP.init(G, args.MTA, args.log)
@@ -249,6 +264,20 @@ def main():
             plotName = "Dijkstra's Algo"
         else:
             DA.init(Graph=G, source=args.DA)
+
+    # We just want to look at the graph, no algorithm to study for additional info
+    else:
+        if(args.test):
+            edgeNum = [graph.number_of_edges() for graph in graphList]
+            ygroup = []
+            for graph in graphList:
+                degrees = [val for (node, val) in G.degree()]
+                delta = max(degrees)
+                diameter = nx.diameter(graph)
+                ygroup.append(graph.number_of_nodes()*delta*diameter)
+
+            plt.bar(edgeNum, ygroup)
+            plt.show()
 
     if(args.plot):
         plotResults(plotName)

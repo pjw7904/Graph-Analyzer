@@ -82,6 +82,7 @@ def init(G, r, loggingStatus, batch=False):
 
     s = Q.pop(TOP_NODE)
     #sendVertexVector(G, r, s)
+	# G.nodes[receiver]['PV'] = G.nodes[receiver]["RT"][min(G.nodes[receiver]["RT"], key=G.nodes[receiver]["RT"].get)]
     secondAttempt(G,r,s)
 
     vectorOutput(G)
@@ -105,9 +106,13 @@ def reconverge(G, r, brokenVertex1, brokenVertex2):
         G.nodes[brokenVertex1]['AV'] = RSTAVector(float('inf'), G.nodes[brokenVertex1]['BID'])
         G.nodes[brokenVertex1]['VV'] = RSTAVector(G.nodes[brokenVertex1]['PV'].RPC+1, G.nodes[brokenVertex1]['BID'])
 
+        G.nodes[brokenVertex1]["RT"].pop(brokenVertex2)
+
+        for neighbor in G.neighbors(brokenVertex1):
+            G.nodes[brokenVertex1]["RT"][neighbor] = RSTAVector(float('inf'), G.nodes[brokenVertex1]['BID'])
+
     # Start sending and reconverging
-    sendVertexVector(G, r, brokenVertex1)
-    sendVertexVector(G, r, "node-2")
+    secondAttempt(G, r, brokenVertex1)
 
     logging.warning("============RECONVERGE============")
     vectorOutput(G)
@@ -117,34 +122,48 @@ def reconverge(G, r, brokenVertex1, brokenVertex2):
 
 def secondAttempt(G, root, sender):
     for receiver in G.neighbors(sender):
+        # If the receiver is the root, skip, as the root won't have any changes
         if(receiver == root):
             continue
 
+        # Make a copy of the receivers current parent vector, note that it hasn't been updated yet (may not be updated)
         updatedPV = False
-        receiver_old_PV = G.nodes[receiver]['PV']
+        updatedAV = False
+        AVFound = False
 
-        # Update with what you've received
+        receiver_old_PV = G.nodes[receiver]['PV']
+        receiver_old_AV = G.nodes[receiver]['AV']
+
+        # Update table with what you've received [VV from sender is noted]
         G.nodes[receiver]["RT"][sender] = G.nodes[sender]['VV']
 
-        # Update receiver vectors
-        #G.nodes[receiver]['PV'] = G.nodes[receiver]["RT"][min(G.nodes[receiver]["RT"], key=G.nodes[receiver]["RT"].get)]
-        update = sorted(G.nodes[receiver]["RT"].items(), key=itemgetter(1))[:2]
-
+        # Update receiver vectors by determining the best and second best vector received (second best most likely not to be used)
+        update = sorted(G.nodes[receiver]["RT"].items(), key=itemgetter(1))
+		
+		# Updated PV to the best sent VV
         G.nodes[receiver]['PV'] = update[0][1]
-
+		
+		# if that PV is not the same as the old PV, note the update
         if(receiver_old_PV != G.nodes[receiver]['PV']):
             updatedPV = True
 
-        if(update[1][1].RPC != float('inf') and senderVectorIsSuperior(update[1][1], G.nodes[receiver]['VV'])):
-            print(receiver)
-            print(update[1][1])
-            print(G.nodes[receiver]['VV'])
-            print()
-            G.nodes[receiver]['AV'] = update[1][1]
-
+        # Define the new receiver vertex vector
         G.nodes[receiver]['VV'] = RSTAVector(G.nodes[receiver]['PV'].RPC+1, G.nodes[receiver]['BID'])
+		
+		# temp fix?
+        for i in range(1, len(update)):
+            if(update[i][1].RPC != float('inf') and firstVectorIsSuperior(update[i][1], G.nodes[receiver]['VV'])):
+                G.nodes[receiver]['AV'] = update[i][1]
+                AVFound = True
+                break
+        
+        if(not AVFound):
+            G.nodes[receiver]['AV'] = RSTAVector(float('inf'), G.nodes[receiver]['BID'])
 
-        if(updatedPV):
+        if(receiver_old_AV != G.nodes[receiver]['AV']):
+            updatedAV = True
+
+        if(updatedPV or updatedAV):
             Q.append(receiver)
 
     if(Q):
@@ -165,13 +184,13 @@ def sendVertexVector(G, r, s):
         VV_x_prime = RSTAVector(G.nodes[x]['VV'].RPC + 1, G.nodes[x]['BID'])
         G.graph["step"] += 2
 
-        if(isWeakenedParent(VV_s_prime, G.nodes[x]['PV']) and senderVectorIsSuperior(G.nodes[x]['AV'], G.nodes[s]['VV'])):
+        if(isWeakenedParent(VV_s_prime, G.nodes[x]['PV']) and firstVectorIsSuperior(G.nodes[x]['AV'], G.nodes[s]['VV'])):
             G.nodes[x]['PV'] = G.nodes[x]['AV']
             G.nodes[x]['AV'] = RSTAVector(float('inf'), G.nodes[x]['BID'])
 
-        elif(senderVectorIsSuperior(VV_s_prime, VV_x_prime)):
+        elif(firstVectorIsSuperior(VV_s_prime, VV_x_prime)):
             G.graph["step"] += 1
-            if(senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
+            if(firstVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
                 G.graph["step"] += 1
                 updatedVector = True
         
@@ -180,7 +199,7 @@ def sendVertexVector(G, r, s):
                 G.graph["step"] += 3
 
             # VV_s_prime.BID != G.nodes[x]['PV'].BID and
-            elif(senderVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['AV'])):
+            elif(firstVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['AV'])):
                 G.graph["step"] += 2
                 G.nodes[x]['AV'] = G.nodes[s]['VV'] 
 
@@ -197,7 +216,7 @@ def sendVertexVector(G, r, s):
     return
 
 # Check the inputted vectors to see if the first is superior to the second
-def senderVectorIsSuperior(senderVector, receiverVector):
+def firstVectorIsSuperior(senderVector, receiverVector):
     isSuperior = False
 
     if(
