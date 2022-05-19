@@ -11,12 +11,12 @@ number of top-tier pods = k, because the top tier of nodes will have k connectio
 number of pods within that top-tier pod = k/2, because you have half of your connections 
 to the top tier and half 
 '''
-def generatePod(G, tier, k, podPrefix="", topTier=False):
+def generatePod(G, tier, k, podPrefix="", numNodesAbove=0, topTier=False):
 
     if(topTier):
-        for podNum in range(1, k+1):
+        for podNum in range(1, 2): #k+1
             podPrefix = "P{}".format(podNum)
-            generatePod(G, tier-1, k, podPrefix) 
+            generatePod(G, tier-1, k, numNodesAbove=int(numNodesAbove/int(k/2)), podPrefix=podPrefix) 
 
     # At tier one (leaf nodes), half of your ports (k/2) go to servers, the other half go to spines
     elif(tier == 1):
@@ -36,8 +36,17 @@ def generatePod(G, tier, k, podPrefix="", topTier=False):
     else:   
         for podNum in range(1, int((k/2)+1)):
             prefix = podPrefix + "P" + str(podNum)
-            generatePod(G, tier-1, k, prefix)
+            generatePod(G, tier-1, k, podPrefix=prefix, numNodesAbove=int(numNodesAbove/int(k/2)))
             print("pod prefix: {}\nprefix: {}".format(podPrefix, prefix))
+
+            # for each super spine node
+            for spine in range(1, int(numNodesAbove/int(k/2))+1):
+                spineNode = prefix + "_S{spineNum}".format(spineNum=spine)
+
+                # for each edge to a super spine node, step every other (2)
+                for port in range(0,int((k/2))):
+                    superSpineNode = podPrefix + "_S{spineNum}".format(spineNum=spine+(int(numNodesAbove/int(k/2)*port)))
+                    G.add_edge(spineNode, superSpineNode)
 
     return
 
@@ -64,13 +73,15 @@ def generateFoldedClosGraph(k, l):
         .format(numTopTierSpineNodes, numLeafNodes, numOfHosts, numOfPods))
 
     G = nx.Graph()
-    generatePod(G, l, k, topTier=True)
+    generatePod(G, l, k, numNodesAbove=numTopTierSpineNodes, topTier=True)
     print(list(G))
     nx.draw(G,with_labels=True)
     plt.show()
 
-generateFoldedClosGraph(4, 3)
+    return G
 
+G = generateFoldedClosGraph(6, 4)
+nx.write_graphml(G=G, path="test.graphml", prettyprint=True)
 
 
 # Naming prefix in the form P{tier-(l-1) pod #}P{tier-(l-2) pod #} and so on as needed
