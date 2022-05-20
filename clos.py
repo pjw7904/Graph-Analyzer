@@ -14,9 +14,18 @@ to the top tier and half
 def generatePod(G, tier, k, podPrefix="", numNodesAbove=0, topTier=False):
 
     if(topTier):
-        for podNum in range(1, 2): #k+1
+        for podNum in range(1, k+1):
             podPrefix = "P{}".format(podNum)
             generatePod(G, tier-1, k, numNodesAbove=int(numNodesAbove/int(k/2)), podPrefix=podPrefix) 
+
+            # for each super spine node
+            for spine in range(1, int(numNodesAbove/int(k/2))+1):
+                spineNode = podPrefix + "_S{spineNum}".format(spineNum=spine)
+
+                # for each edge to a super spine node, step every other (2)
+                for port in range(0,int((k/2))):
+                    superSpineNode = "TS{spineNum}".format(spineNum=spine+(int(numNodesAbove/int(k/2)*port)))
+                    G.add_edge(spineNode, superSpineNode)
 
     # At tier one (leaf nodes), half of your ports (k/2) go to servers, the other half go to spines
     elif(tier == 1):
@@ -80,7 +89,7 @@ def generateFoldedClosGraph(k, l):
 
     return G
 
-G = generateFoldedClosGraph(6, 4)
+G = generateFoldedClosGraph(4, 4)
 nx.write_graphml(G=G, path="test.graphml", prettyprint=True)
 
 
