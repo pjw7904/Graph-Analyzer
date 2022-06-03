@@ -78,13 +78,6 @@ def generateGraph(sourceInput):
     elif(graphFormat == "ring" and len(sourceInput) == 2):
         G = nx.cycle_graph(int(sourceInput[1]))
 
-        # Create a dictionary mapping the integer names to an updated node-x names, where x is the int name
-        updatedVertexNames = {}
-        for vertex in G:
-            updatedVertexNames[vertex] = "node-{intName}".format(intName=vertex)
-
-        nx.relabel_nodes(G, updatedVertexNames, copy=False)
-
     elif(graphFormat == "random" and len(sourceInput) == 2):
         hardCodedNumOfNodes = 25
         probabilityForEdgeCreation = float(sourceInput[1])
@@ -208,17 +201,17 @@ def main():
                 RSTA.init(G=graph, r=0, loggingStatus=True, batch=True)
             plotName = "RSTA"
         else:
-            RSTA.init(G, args.RSTA, args.log)
+            RSTA.init(G, int(args.RSTA), args.log) # 5/20/22 --> UPDATE FOR INT-NAMED VERTICIES
 
             if(args.remove):            
                 if (len(args.remove) == 2):
                     try:
-                        G.remove_edge(args.remove[0], args.remove[1])
+                        G.remove_edge(int(args.remove[0]), int(args.remove[1]))
                     except NetworkXError:
                         print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
                         sys.exit(0)
 
-                    RSTA.reconverge(G, args.RSTA, args.remove[0], args.remove[1])
+                    RSTA.reconverge(G, args.RSTA, int(args.remove[0]), int(args.remove[1]))
 
                 else:
                     print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
@@ -240,7 +233,7 @@ def main():
                 MTA_RP.init(Graph=graph, root=0, loggingStatus=True, batch=True)
             plotName = "MTA Remedy"
         else:
-            MTA_RP.init(G, args.MTA, args.log)
+            MTA_RP.init(G, int(args.MTA), args.log)
 
             if(args.remove):            
                 if (len(args.remove) == 2):
@@ -250,7 +243,7 @@ def main():
                         print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
                         sys.exit(0)
 
-                    MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
+                    MTA_RP.MTA_reconverge(G, int(args.remove[0]), int(args.remove[1]))
 
                 else:
                     print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
@@ -263,7 +256,7 @@ def main():
                 DA.init(Graph=graph, source=0, loggingStatus=True, batch=True)
             plotName = "Dijkstra's Algo"
         else:
-            DA.init(Graph=G, source=args.DA)
+            DA.init(Graph=G, source=int(args.DA))
 
     # We just want to look at the graph, no algorithm to study for additional info
     else:
