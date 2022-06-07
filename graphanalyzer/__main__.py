@@ -70,7 +70,7 @@ def generateGraph(sourceInput):
 
     if(graphFormat == "graphml" and len(sourceInput) == 2):
         try:
-            G = nx.read_graphml(path=sourceInput[1])
+            G = nx.read_graphml(path=sourceInput[1], node_type=int) # Reads in names as ints for simplicity, may change back to str in the future
         except FileNotFoundError:
             print("graphml graph file {0} does not exist in this location".format(sourceInput[1]))
             sys.exit()
@@ -225,6 +225,10 @@ def main():
             plotName = "MTA N-Paths"
         else:
             MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
+
+            if(args.remove):
+                if (len(args.remove) == 2):
+                    MTP_NPaths.analyzeEdgeRemoval(G, int(args.remove[0]), int(args.remove[1]))           
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.MTA):

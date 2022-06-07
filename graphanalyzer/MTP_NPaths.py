@@ -78,26 +78,30 @@ def init(Graph, root, loggingStatus, batch=False):
                 # Append 'x' to each of v's paths in v's path bundle if not already in the path bundle
                 validPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
                 Graph.graph["step"] += len(validPaths)
-                logging.warning("\tNew path(s): {0}\n".format(validPaths))
+                if(validPaths):
+                    logging.warning("\tNew path(s): {0}\n".format(validPaths))
 
-                # Add these paths to x's path bundle
-                Graph.nodes[x]['pathBundle'] = mergePathBundles(copy.deepcopy(Graph.nodes[x]['pathBundle']), validPaths, Graph)
-                logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+                    # Add these paths to x's path bundle
+                    Graph.nodes[x]['pathBundle'] = mergePathBundles(copy.deepcopy(Graph.nodes[x]['pathBundle']), validPaths, Graph)
+                    logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
-                # Remove extra paths (keep only 3)
-                logging.warning("\tRemoved paths: {0}\n".format(Graph.nodes[x]['pathBundle'][MAX_PATHS:]))
-                del Graph.nodes[x]['pathBundle'][MAX_PATHS:]
-                Graph.graph["step"] += 1
-               
-                logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
-
-                # Add 'x' to the sending queue if not already in the queue (issue: it may never hit 3 paths, have to fix this)
-                if x not in sendingQueue: #and validPaths:
-                    sendingQueue.append(x)
+                    # Remove extra paths (keep only 3)
+                    logging.warning("\tRemoved paths: {0}\n".format(Graph.nodes[x]['pathBundle'][MAX_PATHS:]))
+                    del Graph.nodes[x]['pathBundle'][MAX_PATHS:]
                     Graph.graph["step"] += 1
-                    logging.warning("\tNode appended to sending queue\n")
+                
+                    logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
-                logging.warning("\n")
+                    # Add 'x' to the sending queue if not already in the queue (issue: it may never hit 3 paths, have to fix this)
+                    if x not in sendingQueue:
+                        sendingQueue.append(x)
+                        Graph.graph["step"] += 1
+                        logging.warning("\tNode appended to sending queue\n")
+
+                else:
+                    logging.warning("\t No new paths, no changes.\n\n")
+
+                #logging.warning("\n")
 
             else:
                 logging.warning("\t Max path limit hit (or root), no changes.\n\n")
@@ -114,6 +118,51 @@ def init(Graph, root, loggingStatus, batch=False):
     logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
 
     return nodeSendingCount
+
+
+def analyzeEdgeRemoval(Graph, nodeWithRemovedEdge1, nodeWithRemovedEdge2):
+    removedEdge = Graph.nodes[nodeWithRemovedEdge1]['ID'] + Graph.nodes[nodeWithRemovedEdge2]['ID']
+    removedEdge2 = Graph.nodes[nodeWithRemovedEdge2]['ID'] + Graph.nodes[nodeWithRemovedEdge1]['ID']
+    removedPathCount = 0
+    totalNumberOfPaths = 0
+    usedPaths = set()
+    newUsedPaths = set()
+
+    for vertex in Graph:
+        newBundle = []
+        
+        # old way
+        #res = set(filter(lambda x: removedEdge in x, Graph.nodes[vertex]['pathBundle']))
+        #removedPathCount += len(res)
+
+        totalNumberOfPaths += len(Graph.nodes[vertex]['pathBundle'])
+
+        for path in Graph.nodes[vertex]['pathBundle']:
+            usedPaths.update(getPathEdgeSet(path))
+
+            if(removedEdge not in path and removedEdge2 not in path):
+                newBundle.append(path)
+            else:
+                removedPathCount += 1
+
+        Graph.nodes[vertex]['pathBundle'] = newBundle
+
+        for path in Graph.nodes[vertex]['pathBundle']:
+            newUsedPaths.update(getPathEdgeSet(path))
+
+        # old way
+        #Graph.nodes[vertex]['pathBundle'] = [e for e in Graph.nodes[vertex]['pathBundle'] if e not in res]
+
+    logging.warning("-----------\nUPDATED RESULTS:\nremoved edge: {0}\n".format(removedEdge))
+
+    for vertex in Graph:
+        logging.warning("{0} ({1})\n\tpath bundle = {2}".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle']))
+
+    logging.warning("\ntotal paths before removal: {0}\ntotal paths lost: {1}\npercent of paths lost: {2:.2f}%".format(totalNumberOfPaths, removedPathCount, (removedPathCount/totalNumberOfPaths)*100))
+   # logging.warning("\ntotal number of edges: {0}\nnumber edges used before removal: {1}\npercent of edges used before removal: {2:2f}\nnumber of edges used after removal: {3}\npercent of edges used after removal: {4:2f}"
+    #                .format(Graph.number_of_edges(), str(usedPaths), (len(usedPaths)/Graph.number_of_edges())*100, len(newUsedPaths), (len(newUsedPaths)/Graph.number_of_edges())*100))
+    return
+
 
 def mergePathBundles(pathBundle1, pathBundle2, Graph):
     greatBundle = []
@@ -141,6 +190,18 @@ def mergePathBundles(pathBundle1, pathBundle2, Graph):
           greatBundle = greatBundle +  mergePathBundles(pathBundle1, pathBundle2[1:], Graph)
 
     return greatBundle
+
+
+def getPathEdgeSet(path):
+    edgeSet = []
+    if path:
+        if len(path) <= 2:
+            edgeSet = [path]
+        else:
+            vertexSet = list(path)
+            for currentEdge in range(1,len(vertexSet)):
+                edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
+    return edgeSet
 
 
 def setLoggingLevel(requiresLogging, batch):
