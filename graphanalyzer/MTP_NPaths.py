@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
+from TreeAnalyzer import TreeValidator
 import copy
 import logging
 
@@ -33,6 +34,8 @@ def createMeshedTreeDatatStructures(G, root):
 def init(Graph, root, loggingStatus, batch=False):
     setLoggingLevel(loggingStatus, batch)
     createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
+    treeValidator = TreeValidator(Graph.nodes) # Create a validation object to make sure the result is a tree
+
     Graph.graph["step"] = 0
 
     # Counts the number of times a given node is added to the sending queue and sends updates, for complexity calculations
@@ -65,19 +68,15 @@ def init(Graph, root, loggingStatus, batch=False):
         v = sendingQueue[TOP_NODE]
         logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n\n".format(v, Graph.nodes[v]['pathBundle']))
         Graph.nodes[v]['sendCount'] += 1
-        Graph.graph["step"] += 1
 
         # For each neighbor x of v
         for x in Graph.neighbors(v):
             logging.warning("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
-
             logging.warning("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
             if(len(Graph.nodes[x]['pathBundle']) < MAX_PATHS and x != root):
-
                 # Append 'x' to each of v's paths in v's path bundle if not already in the path bundle
                 validPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
-                Graph.graph["step"] += len(validPaths)
                 if(validPaths):
                     logging.warning("\tNew path(s): {0}\n".format(validPaths))
 
@@ -88,31 +87,33 @@ def init(Graph, root, loggingStatus, batch=False):
                     # Remove extra paths (keep only 3)
                     logging.warning("\tRemoved paths: {0}\n".format(Graph.nodes[x]['pathBundle'][MAX_PATHS:]))
                     del Graph.nodes[x]['pathBundle'][MAX_PATHS:]
-                    Graph.graph["step"] += 1
                 
                     logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+
+                    # If this vertex is now a child of the sender, update the tree validator with that information
+                    if(Graph.nodes[x]['pathBundle'][0][:-1] == Graph.nodes[v]['pathBundle'][0]):
+                        treeValidator.addParent(v, x)
 
                     # Add 'x' to the sending queue if not already in the queue (issue: it may never hit 3 paths, have to fix this)
                     if x not in sendingQueue:
                         sendingQueue.append(x)
-                        Graph.graph["step"] += 1
                         logging.warning("\tNode appended to sending queue\n")
 
                 else:
                     logging.warning("\t No new paths, no changes.\n\n")
-
-                #logging.warning("\n")
 
             else:
                 logging.warning("\t Max path limit hit (or root), no changes.\n\n")
 
         # Remove 'v' from the sending queue now that we are done with each neighbor
         sendingQueue.pop(TOP_NODE)
-        Graph.graph["step"] += 1
 
     logging.warning("-----------\nFINAL RESULTS: \n")
     for vertex in Graph:
-        logging.warning("{0} ({1})\n\tpath bundle = {2}, count = {3}".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], Graph.nodes[vertex]['sendCount']))
+        logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
+
+    # Confirm that what is created is a tree
+    logging.warning("Results in a tree: {0}".format(treeValidator.isTree()))
 
     # For batch testing
     logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))

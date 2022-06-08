@@ -1,6 +1,6 @@
 import networkx as nx
 
-class TreeAnalyzer:
+class TreeValidator:
     def __init__(self, vertices):
         # Create an empty, simple graph and add the inputted vertices
         self.graph = nx.Graph()
