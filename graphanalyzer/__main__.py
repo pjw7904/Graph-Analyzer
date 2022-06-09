@@ -228,7 +228,7 @@ def main():
 
             if(args.remove):
                 if (len(args.remove) == 2):
-                    MTP_NPaths.analyzeEdgeRemoval(G, int(args.remove[0]), int(args.remove[1]))           
+                    MTP_NPaths.analyzeEdgeRemoval(G, int(args.NPaths), int(args.remove[0]), int(args.remove[1]))           
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.MTA):

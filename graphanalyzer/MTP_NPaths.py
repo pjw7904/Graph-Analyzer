@@ -2,6 +2,7 @@
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from TreeAnalyzer import TreeValidator
+from networkx import single_source_shortest_path_length
 import copy
 import logging
 
@@ -11,7 +12,7 @@ import logging
 TOP_NODE = 0
 MAX_PATHS = 3
 LOG_FILE = "results/log_results/MTA_NPath_Output.log"
-LOG_FILE_BATCH = "results/log_results/batch_test.log"
+LOG_FILE_BATCH = "results/log_results/MTA_NPath_batch_test.log"
 
 def createMeshedTreeDatatStructures(G, root):
     IDCount = 0
@@ -115,6 +116,11 @@ def init(Graph, root, loggingStatus, batch=False):
 
     # Confirm that what is created is a tree
     logging.warning("Results is a tree: {0}".format(treeValidator.isTree()))
+    
+    # Network survival stats
+    Vm, probOfSurvival = calculateNetworkSurvival(Graph, root)
+    logging.warning("|Vm| = {0}".format(len(Vm)))
+    logging.warning("Probability of network survival >= {:0.2f}%".format(probOfSurvival*100))
 
     # For batch testing
     if(batch):
@@ -123,47 +129,36 @@ def init(Graph, root, loggingStatus, batch=False):
     return nodeSendingCount
 
 
-def analyzeEdgeRemoval(Graph, nodeWithRemovedEdge1, nodeWithRemovedEdge2):
+def analyzeEdgeRemoval(Graph, root, nodeWithRemovedEdge1, nodeWithRemovedEdge2):
     removedEdge = Graph.nodes[nodeWithRemovedEdge1]['ID'] + Graph.nodes[nodeWithRemovedEdge2]['ID']
-    removedEdge2 = Graph.nodes[nodeWithRemovedEdge2]['ID'] + Graph.nodes[nodeWithRemovedEdge1]['ID']
+    removedEdgeFlipped = Graph.nodes[nodeWithRemovedEdge2]['ID'] + Graph.nodes[nodeWithRemovedEdge1]['ID']
+
     removedPathCount = 0
     totalNumberOfPaths = 0
-    usedPaths = set()
-    newUsedPaths = set()
+
+    treeValidator = TreeValidator(Graph.nodes) # Create a validation object to make sure the result is a tree
 
     for vertex in Graph:
-        newBundle = []
-        
-        # old way
-        #res = set(filter(lambda x: removedEdge in x, Graph.nodes[vertex]['pathBundle']))
-        #removedPathCount += len(res)
+        if(vertex != root):
+            totalNumberOfPaths += len(Graph.nodes[vertex]['pathBundle'])
 
-        totalNumberOfPaths += len(Graph.nodes[vertex]['pathBundle'])
+            res = set(filter(lambda x: removedEdge in x or removedEdgeFlipped in x, Graph.nodes[vertex]['pathBundle']))
+            removedPathCount += len(res)
 
-        for path in Graph.nodes[vertex]['pathBundle']:
-            usedPaths.update(getPathEdgeSet(path))
+            Graph.nodes[vertex]['pathBundle'] = [e for e in Graph.nodes[vertex]['pathBundle'] if e not in res]
 
-            if(removedEdge not in path and removedEdge2 not in path):
-                newBundle.append(path)
-            else:
-                removedPathCount += 1
+            if(Graph.nodes[vertex]['pathBundle']):
+                parentID = Graph.nodes[vertex]['pathBundle'][0][-2]
+                treeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], vertex)
 
-        Graph.nodes[vertex]['pathBundle'] = newBundle
-
-        for path in Graph.nodes[vertex]['pathBundle']:
-            newUsedPaths.update(getPathEdgeSet(path))
-
-        # old way
-        #Graph.nodes[vertex]['pathBundle'] = [e for e in Graph.nodes[vertex]['pathBundle'] if e not in res]
-
-    logging.warning("-----------\nUPDATED RESULTS:\nremoved edge: {0}\n".format(removedEdge))
+    logging.warning("-----------\nUPDATED RESULTS:\nremoved edge: {0}/{1}\n".format(removedEdge, removedEdgeFlipped))
 
     for vertex in Graph:
-        logging.warning("{0} ({1})\n\tpath bundle = {2}".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle']))
+        logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
 
-    logging.warning("\ntotal paths before removal: {0}\ntotal paths lost: {1}\npercent of paths lost: {2:.2f}%".format(totalNumberOfPaths, removedPathCount, (removedPathCount/totalNumberOfPaths)*100))
-   # logging.warning("\ntotal number of edges: {0}\nnumber edges used before removal: {1}\npercent of edges used before removal: {2:2f}\nnumber of edges used after removal: {3}\npercent of edges used after removal: {4:2f}"
-    #                .format(Graph.number_of_edges(), str(usedPaths), (len(usedPaths)/Graph.number_of_edges())*100, len(newUsedPaths), (len(newUsedPaths)/Graph.number_of_edges())*100))
+    logging.warning("total paths before removal: {0}\ntotal paths lost: {1}\npercent of paths lost: {2:.2f}%".format(totalNumberOfPaths, removedPathCount, (removedPathCount/totalNumberOfPaths)*100))
+    logging.warning("Result is a tree: {0}".format(treeValidator.isTree()))
+
     return
 
 
@@ -193,6 +188,17 @@ def mergePathBundles(pathBundle1, pathBundle2, Graph):
           greatBundle = greatBundle +  mergePathBundles(pathBundle1, pathBundle2[1:], Graph)
 
     return greatBundle
+
+
+def calculateNetworkSurvival(G, root):
+    # Maximum number of remedy paths in a bundle, meaning it does not include the primary path
+    m = MAX_PATHS - 1
+    Vm = single_source_shortest_path_length(G, root, cutoff=m)
+
+    # 1 - (|V|-|Vm|)/|E|
+    probNetworkSurival = 1 - ((G.number_of_nodes() - len(Vm))/G.number_of_edges())
+
+    return Vm, probNetworkSurival
 
 
 def getPathEdgeSet(path):
