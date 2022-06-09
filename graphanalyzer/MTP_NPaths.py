@@ -15,13 +15,15 @@ LOG_FILE_BATCH = "results/log_results/batch_test.log"
 
 def createMeshedTreeDatatStructures(G, root):
     IDCount = 0
+    G.graph['ID_to_vertex'] = {} # Define a graph-wide dictionary to translate IDs back to vertices
 
     for node in G:
+        # Add a mapping in both directions, node --> ID (vertex-level) and ID --> node (graph-level)
         G.nodes[node]['ID'] = chr(65 + IDCount)
+        G.graph['ID_to_vertex'][chr(65 + IDCount)] = node
     
         if(node == root):
             logging.warning("Root node is {0}, ID = {1}\n".format(node, G.nodes[node]['ID']))
-
         else:
             logging.warning("Non-Root node {0}, ID = {1}\n".format(node, G.nodes[node]['ID']))
 
@@ -66,57 +68,57 @@ def init(Graph, root, loggingStatus, batch=False):
 
         # v is the top node in the sending queue
         v = sendingQueue[TOP_NODE]
-        logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n\n".format(v, Graph.nodes[v]['pathBundle']))
+        logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
         Graph.nodes[v]['sendCount'] += 1
 
         # For each neighbor x of v
         for x in Graph.neighbors(v):
-            logging.warning("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
-            logging.warning("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+            logging.warning("NEIGHBOR: {0} ({1})".format(x, Graph.nodes[x]['ID']))
+            logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
 
             if(len(Graph.nodes[x]['pathBundle']) < MAX_PATHS and x != root):
                 # Append 'x' to each of v's paths in v's path bundle if not already in the path bundle
                 validPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
                 if(validPaths):
-                    logging.warning("\tNew path(s): {0}\n".format(validPaths))
+                    logging.warning("\tNew path(s): {0}".format(validPaths))
 
                     # Add these paths to x's path bundle
                     Graph.nodes[x]['pathBundle'] = mergePathBundles(copy.deepcopy(Graph.nodes[x]['pathBundle']), validPaths, Graph)
-                    logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+                    logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
 
                     # Remove extra paths (keep only 3)
-                    logging.warning("\tRemoved paths: {0}\n".format(Graph.nodes[x]['pathBundle'][MAX_PATHS:]))
+                    logging.warning("\tRemoved paths: {0}".format(Graph.nodes[x]['pathBundle'][MAX_PATHS:]))
                     del Graph.nodes[x]['pathBundle'][MAX_PATHS:]
-                
-                    logging.warning("\tUpdated path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
-                    # If this vertex is now a child of the sender, update the tree validator with that information
-                    if(Graph.nodes[x]['pathBundle'][0][:-1] == Graph.nodes[v]['pathBundle'][0]):
+                    logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
+
+                    # If this vertex (x) is now a child of the sender (v), update the tree validator with that information
+                    if(Graph.nodes[x]['pathBundle'][0][-2] == Graph.nodes[v]['ID']):
                         treeValidator.addParent(v, x)
 
-                    # Add 'x' to the sending queue if not already in the queue (issue: it may never hit 3 paths, have to fix this)
+                    # Add 'x' to the sending queue if not already in the queue, but you need to see if something changes perhaps? Not just that you have new paths
                     if x not in sendingQueue:
                         sendingQueue.append(x)
-                        logging.warning("\tNode appended to sending queue\n")
+                        logging.warning("\tNode appended to sending queue.")
 
                 else:
-                    logging.warning("\t No new paths, no changes.\n\n")
-
+                    logging.warning("\tNo new paths, no changes.")
             else:
-                logging.warning("\t Max path limit hit (or root), no changes.\n\n")
+                logging.warning("\tMax path limit hit (or root), no changes.")
 
-        # Remove 'v' from the sending queue now that we are done with each neighbor
+        # Remove v from the sending queue now that we are done with each neighbor
         sendingQueue.pop(TOP_NODE)
 
-    logging.warning("-----------\nFINAL RESULTS: \n")
+    logging.warning("-----------\nFINAL RESULTS:\n")
     for vertex in Graph:
         logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
 
     # Confirm that what is created is a tree
-    logging.warning("Results in a tree: {0}".format(treeValidator.isTree()))
+    logging.warning("Results is a tree: {0}".format(treeValidator.isTree()))
 
     # For batch testing
-    logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
+    if(batch):
+        logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
 
     return nodeSendingCount
 
