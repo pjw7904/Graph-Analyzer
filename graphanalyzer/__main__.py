@@ -6,17 +6,18 @@ import sys # Access to system-level functions
 import networkx as nx # Graph creation and analysis
 import matplotlib.pyplot as plt # Drawing graphs
 from tabulate import tabulate # Printing formatted ASCII tables
-from networkx import NetworkXError
+from networkx import NetworkXError # Handling graph-specific errors
 
-# Custom modules
-import MT_VIDs_Utils # Creates VIDs from possible simple paths in the graph
-import MTA_RP # MTA simulation based on John's FSM
-import MTP_NPaths
-import RSTA
-import DA # Dijkstra's algorithm simulation
-import ClassicalMetrics
-import GraphGenerator
-from plotBatchTest import plotResults
+## Custom modules
+# Shortest Path Tree (SPT) algorithms
+import MTA_RP # MTA Remedy Path algorithm
+import MTP_NPaths # MTA N-Path algorithm
+import RSTA # Rapid Spanning Tree algorithm
+import DA # Dijkstra's algorithm
+# Graph creation and analysis
+import ClassicalMetrics # Classic Graphy Theory metrics
+import GraphGenerator # Generate graphs via well-known algorithms
+from plotBatchTest import plotResults # Plotting for batch testing
 
 def parseArgs():
     # ArgumentParser object to read in command-line arguments
@@ -58,7 +59,7 @@ def parseArgs():
 
     # Allow the user to remove an edge from the graph. 
     # The algorithm being run will determine what happens based on that removed edge input
-    argParser.add_argument("-r", "--remove", nargs=2)
+    argParser.add_argument("-r", "--remove", type=int, nargs=2)
 
     # Parse the arguments
     args = argParser.parse_args()
@@ -90,7 +91,6 @@ def generateGraph(sourceInput):
 
 def computeMetrics(calcOptions, G):
     if(calcOptions["Classical"]):
-        # Calculate metric results based on the appropriate graph theory algorithms included and display them with Tabulate
         results = ClassicalMetrics.calculateClassicalMetricsResults(G)
         print("{Header}\n{Results}\n".format(Header="____CLASSICAL METRICS____", Results=tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f")))
 
@@ -104,12 +104,18 @@ def computeMetrics(calcOptions, G):
 
     return
 
+def removedEdge(Graph, edge):
+    if(len(edge) == 2 and Graph.has_edge(int(edge[0]), int(edge[1]))):
+        return edge
+    else:
+        return None
+
 '''
 #######
 main 
 #######
 
-# NetworkX Graph In Use:
+# NetworkX graph used:
 # |Type       | Self-Loops | Parallel Edges|
 # |Undirected | No         | No            |
 '''
@@ -183,17 +189,11 @@ def main():
 
                     if(numberOfEdges == maxValue+1):
                         notFinished = False
-        '''
-        for graph in graphList:
-            print(nx.weisfeiler_lehman_graph_hash(graph))
-            print(graph.number_of_nodes())
-            print(graph.number_of_edges())
-        '''
 
     else:
         G = generateGraph(args.source) # Generate a graph to use for calculations
 
-    # Run one of the algorithms for initial SPT convergence
+    ## Run one of the algorithms for initial SPT convergence
     # Rapid Spanning Tree Algorithm
     if(args.RSTA):
         if(args.test):
@@ -224,11 +224,8 @@ def main():
                 MTP_NPaths.init(Graph=graph, root=0, loggingStatus=True, batch=True)
             plotName = "MTA N-Paths"
         else:
-            Vm = MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
-            print(Vm)
-            if(args.remove):
-                if (len(args.remove) == 2):
-                    MTP_NPaths.analyzeEdgeRemoval(G, int(args.NPaths), int(args.remove[0]), int(args.remove[1]), Vm)           
+            # If a valid edge is to be removed, it will be included in the analysis
+            MTP_NPaths.init(Graph=G, root=int(args.NPaths), loggingStatus=args.log, removal=removedEdge(G, args.remove))
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.MTA):
