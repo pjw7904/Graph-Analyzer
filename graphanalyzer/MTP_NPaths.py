@@ -3,8 +3,11 @@ from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from TreeAnalyzer import TreeValidator
 from networkx import single_source_shortest_path_length
+from networkx import write_graphml
 import copy
 import logging
+import networkx as nx
+import uuid; # for output testing
 
 #
 # Constants
@@ -12,13 +15,14 @@ import logging
 TOP_NODE = 0
 MAX_PATHS = 3
 LOG_FILE = "results/log_results/MTA_NPath_Output.log"
-LOG_FILE_BATCH = "results/log_results/MTA_NPath_batch_test.log"
+LOG_FILE_BATCH = "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results/MTA_NPath_batch_test.csv"
+LOG_FILE_ERROR = "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results/VmFailure_{}.graphml"
 
 def createMeshedTreeDatatStructures(G, root):
     IDCount = 0
     G.graph['ID_to_vertex'] = {} # Define a graph-wide dictionary to translate IDs back to vertices
 
-    for node in G:
+    for node in sorted(G.nodes):
         # Add a mapping in both directions, node --> ID (vertex-level) and ID --> node (graph-level)
         G.nodes[node]['ID'] = chr(65 + IDCount)
         G.graph['ID_to_vertex'][chr(65 + IDCount)] = node
@@ -34,10 +38,10 @@ def createMeshedTreeDatatStructures(G, root):
 
     return
 
-def init(Graph, root, loggingStatus, batch=False):
+def init(Graph, root, loggingStatus, batch=False, removal=None):
     setLoggingLevel(loggingStatus, batch)
     createMeshedTreeDatatStructures(Graph, root) # Every vertex is given a single-character ID (starting with 'A')
-    treeValidator = TreeValidator(Graph.nodes) # Create a validation object to make sure the result is a tree
+    treeValidator = TreeValidator(Graph.nodes, root) # Create a validation object to make sure the result is a tree
 
     Graph.graph["step"] = 0
 
@@ -111,7 +115,7 @@ def init(Graph, root, loggingStatus, batch=False):
         sendingQueue.pop(TOP_NODE)
 
     logging.warning("-----------\nFINAL RESULTS:\n")
-    for vertex in Graph:
+    for vertex in sorted(Graph.nodes):
         logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
 
     # Confirm that what is created is a tree
@@ -122,21 +126,29 @@ def init(Graph, root, loggingStatus, batch=False):
     logging.warning("|Vm| = {0}".format(len(Vm)))
     logging.warning("Probability of network survival >= {:0.2f}%".format(probOfSurvival*100))
 
-    # For batch testing
-    if(batch):
-        logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
+    # If an edge is to be removed and the resulting tree studied
+    if(removal):
+        removalResults = analyzeEdgeRemoval(Graph, root, removal[0], removal[1], Vm, batch)
+        # For batch testing
+        if(batch):
+            logging.error("{0},{1},{2},{3},{4:.2f},{5},{6},{7},{8},{9:.2f},{10}"
+            .format(treeValidator.isTree(), Graph.number_of_nodes(), Graph.number_of_edges(), len(Vm), (probOfSurvival*100), removal, removalResults[0], removalResults[1], removalResults[2], removalResults[3], removalResults[4]))
 
-    return nodeSendingCount
+    elif(batch):
+        logging.error("{0},{1},{2},{3},{4:.2f}"
+        .format(treeValidator.isTree(), Graph.number_of_nodes(), Graph.number_of_edges(), len(Vm), (probOfSurvival*100)))
+
+    return Vm
 
 
-def analyzeEdgeRemoval(Graph, root, nodeWithRemovedEdge1, nodeWithRemovedEdge2):
+def analyzeEdgeRemoval(Graph, root, nodeWithRemovedEdge1, nodeWithRemovedEdge2, Vm, batch=False):
     removedEdge = Graph.nodes[nodeWithRemovedEdge1]['ID'] + Graph.nodes[nodeWithRemovedEdge2]['ID']
     removedEdgeFlipped = Graph.nodes[nodeWithRemovedEdge2]['ID'] + Graph.nodes[nodeWithRemovedEdge1]['ID']
 
     removedPathCount = 0
     totalNumberOfPaths = 0
 
-    treeValidator = TreeValidator(Graph.nodes) # Create a validation object to make sure the result is a tree
+    treeValidator = TreeValidator(Graph.nodes, root) # Create a validation object to make sure the result is a tree
 
     for vertex in Graph:
         if(vertex != root):
@@ -151,13 +163,28 @@ def analyzeEdgeRemoval(Graph, root, nodeWithRemovedEdge1, nodeWithRemovedEdge2):
                 parentID = Graph.nodes[vertex]['pathBundle'][0][-2]
                 treeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], vertex)
 
+    isStrandedVerticesInVm = False
+    strandedVertices = treeValidator.getStrandedVertices()
+    strandedVerticesInVm = set(strandedVertices).intersection(Vm.keys())
+
+    if(strandedVerticesInVm):
+        isStrandedVerticesInVm = True
+        BadGraph = nx.Graph(incoming_graph_data=Graph.edges)
+        stamp = uuid.uuid4().hex[:10]
+        write_graphml(BadGraph, LOG_FILE_ERROR.format(stamp))
+
     logging.warning("-----------\nUPDATED RESULTS:\nremoved edge: {0}/{1}\n".format(removedEdge, removedEdgeFlipped))
 
-    for vertex in Graph:
+    for vertex in sorted(Graph.nodes):
         logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
 
     logging.warning("total paths before removal: {0}\ntotal paths lost: {1}\npercent of paths lost: {2:.2f}%".format(totalNumberOfPaths, removedPathCount, (removedPathCount/totalNumberOfPaths)*100))
     logging.warning("Result is a tree: {0}".format(treeValidator.isTree()))
+    logging.warning("Stranded vertices: {0}".format(strandedVertices))
+    logging.warning("Stranded vertices in Vm: {0}".format(isStrandedVerticesInVm))
+
+    if(batch):
+        return [treeValidator.isTree(), totalNumberOfPaths, removedPathCount, (removedPathCount/totalNumberOfPaths)*100, isStrandedVerticesInVm]
 
     return
 
@@ -199,18 +226,6 @@ def calculateNetworkSurvival(G, root):
     probNetworkSurival = 1 - ((G.number_of_nodes() - len(Vm))/G.number_of_edges())
 
     return Vm, probNetworkSurival
-
-
-def getPathEdgeSet(path):
-    edgeSet = []
-    if path:
-        if len(path) <= 2:
-            edgeSet = [path]
-        else:
-            vertexSet = list(path)
-            for currentEdge in range(1,len(vertexSet)):
-                edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
-    return edgeSet
 
 
 def setLoggingLevel(requiresLogging, batch):

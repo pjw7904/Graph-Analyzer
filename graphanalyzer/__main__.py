@@ -224,11 +224,11 @@ def main():
                 MTP_NPaths.init(Graph=graph, root=0, loggingStatus=True, batch=True)
             plotName = "MTA N-Paths"
         else:
-            MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
-
+            Vm = MTP_NPaths.init(G, int(args.NPaths), args.log) # NOTE: Changed second arg to int() because of random
+            print(Vm)
             if(args.remove):
                 if (len(args.remove) == 2):
-                    MTP_NPaths.analyzeEdgeRemoval(G, int(args.NPaths), int(args.remove[0]), int(args.remove[1]))           
+                    MTP_NPaths.analyzeEdgeRemoval(G, int(args.NPaths), int(args.remove[0]), int(args.remove[1]), Vm)           
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.MTA):

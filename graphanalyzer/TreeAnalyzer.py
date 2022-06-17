@@ -1,10 +1,13 @@
 import networkx as nx
 
 class TreeValidator:
-    def __init__(self, vertices):
+    def __init__(self, vertices, root):
         # Create an empty, simple graph and add the inputted vertices
         self.graph = nx.Graph()
         self.graph.add_nodes_from(vertices)
+
+        # Mark the root of the tree, as it will never have a parent
+        self.root = root
 
         # Add inputted vertices into new graph
         for vertex in vertices:
@@ -41,3 +44,6 @@ class TreeValidator:
 
     def relationshipStatus(self, vertex):
         return "Parent: {parent_vertex}\nChildren: {children_vertices}".format(parent_vertex=self.graph.nodes[vertex]['parent'], children_vertices=self.graph.nodes[vertex]['children'])
+
+    def getStrandedVertices(self):
+        return [vertex for vertex in self.graph.nodes if self.graph.nodes[vertex]['parent'] == None and vertex != self.root]
