@@ -249,7 +249,7 @@ def defineMetrics(Graph):
 def setVertexLabels(G, root):
     IDCount = 0
 
-    for node in G:
+    for node in sorted(G.nodes):
         G.nodes[node]['ID'] = chr(65 + IDCount)
     
         if(node == root):
@@ -284,7 +284,7 @@ def logPathBundles(Graph):
 
     # Log the resulting path bundles from each node
     resultOutput = ""
-    for node in Graph:
+    for node in sorted(Graph.nodes):
         resultOutput += "{0}\n".format(node)
 
         for path in Graph.nodes[node]['pathBundle']:

@@ -105,7 +105,7 @@ def computeMetrics(calcOptions, G):
     return
 
 def removedEdge(Graph, edge):
-    if(len(edge) == 2 and Graph.has_edge(int(edge[0]), int(edge[1]))):
+    if(edge and len(edge) == 2 and Graph.has_edge(int(edge[0]), int(edge[1]))):
         return edge
     else:
         return None
@@ -225,7 +225,7 @@ def main():
             plotName = "MTA N-Paths"
         else:
             # If a valid edge is to be removed, it will be included in the analysis
-            MTP_NPaths.init(Graph=G, root=int(args.NPaths), loggingStatus=args.log, removal=removedEdge(G, args.remove))
+            MTP_NPaths.init(Graph=G, root=int(args.NPaths), loggingStatus=args.log, remedyPaths=True, removal=removedEdge(G, args.remove))
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.MTA):
