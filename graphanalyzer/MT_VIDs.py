@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 from collections import defaultdict
 from operator    import itemgetter
-import networkx          as nx
-import numpy             as np
-import matplotlib.pyplot as plt
-import statistics
-import math
+import networkx as nx
 
 def createMeshedTreeTable(G):
     for node in G:

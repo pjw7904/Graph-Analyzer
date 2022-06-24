@@ -1,8 +1,8 @@
-# Standard modules
+## Standard modules
 import argparse # Parsing command-line arguments
 import sys # Access to system-level functions
 
-# External modules
+## External modules
 import networkx as nx # Graph creation and analysis
 import matplotlib.pyplot as plt # Drawing graphs
 from tabulate import tabulate # Printing formatted ASCII tables
@@ -39,11 +39,8 @@ def parseArgs():
     argParser.add_argument("--CalcAvgNC", action="store_true")
 
     # Meshed Tree Algorithm (MTA) simulation options depending on how it is implemented
-    argParser.add_argument("--GetVIDs") # VID-Based Meshed Tree rooted at the inputted vertex (classic MTA)
-    argParser.add_argument("--numOfVIDs", type=int) # Used with GetVIDs to describe the maximum amount of VIDs to store
-    argParser.add_argument("--hamiltonAlgo") # JH version of basic MTA
-    argParser.add_argument("--NPaths") # YP version of basic MTA
-    argParser.add_argument("--MTA") # JH version of MTA with remedy paths (01/2021)
+    argParser.add_argument("--MTA") # MTA - Remedy Path (no bundle limit)
+    argParser.add_argument("--NPaths") # MTA - Backup or Remedy Path (N paths in bundle limit)
 
     # IEEE Rapid Spanning Tree Algorithm (Rapid STA) simulation options
     argParser.add_argument("--RSTA") # Root pre-designated by adding it as argument
@@ -260,18 +257,6 @@ def main():
             DA.init(Graph=G, source=int(args.DA))
 
     # We just want to look at the graph, no algorithm to study for additional info
-    else:
-        if(args.test):
-            edgeNum = [graph.number_of_edges() for graph in graphList]
-            ygroup = []
-            for graph in graphList:
-                degrees = [val for (node, val) in G.degree()]
-                delta = max(degrees)
-                diameter = nx.diameter(graph)
-                ygroup.append(graph.number_of_nodes()*delta*diameter)
-
-            plt.bar(edgeNum, ygroup)
-            plt.show()
 
     if(args.plot):
         plotResults(plotName)
