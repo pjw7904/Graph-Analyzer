@@ -1,0 +1,57 @@
+{
+    "type": "single",
+    "choice": "ring",
+    "seed": null,
+
+    "single":
+    {
+        "graphml":
+            {
+                "fileName": "5NodeThesis.graphml"
+            },
+        "binomial":
+            {
+                "numberOfVertices": 20,
+                "edgeProbability": 0.6
+            },
+        "smallWorld":
+            {
+                "numberOfVertices": null,
+                "connectedNearestNeighbors": null,
+                "rewiringProbability": null
+            },
+        "harary":
+            {
+                "nodeConnectivity": null,
+                "numberOfVertices": null
+            },
+        "kRegular":
+            {
+                "sharedDegree": null,
+                "numberOfVertices": null
+            },
+        "torus":
+            {
+                "rowsOfVertices": null,
+                "columnsOfVertices": null
+            },
+        "ring":
+            {
+                "numberOfVertices": 6
+            },
+        "internet":
+            {
+                "numberOfVertices": null
+            },
+        "foldedClos":
+            {
+                "sharedDegree": null,
+                "numberOfTiers": null
+            }
+    },
+
+    "batch":
+    {
+        "test": null
+    }
+}

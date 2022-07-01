@@ -1,6 +1,6 @@
 ## Standard modules
-import argparse # Parsing command-line arguments
 import sys # Access to system-level functions
+from os.path import join as getFile
 
 ## External modules
 import networkx as nx # Graph creation and analysis
@@ -14,77 +14,14 @@ import MTA_RP # MTA Remedy Path algorithm
 import MTP_NPaths # MTA N-Path algorithm
 import RSTA # Rapid Spanning Tree algorithm
 import DA # Dijkstra's algorithm
+
 # Graph creation and analysis
 import ClassicalMetrics # Classic Graphy Theory metrics
-import GraphGenerator # Generate graphs via well-known algorithms
 from plotBatchTest import plotResults # Plotting for batch testing
+import GraphGenerator as generator # Generate graphs via well-known algorithms
 
-def parseArgs():
-    # ArgumentParser object to read in command-line arguments
-    argParser = argparse.ArgumentParser(description="Graph Theory Analysis Script")
-
-    # The source of the graph
-    argParser.add_argument("-s", "--source", nargs='*')
-
-    # If logging should be performed in a text file
-    argParser.add_argument("--log", action="store_true")
-
-    # If a formal experiement with a large number of graphs is needed
-    # 0 = # vertex or edge (k-regular), 1 = min value, 2 = max value
-    argParser.add_argument("-t", "--test", nargs='*')
-
-    # Calculating graph metrics
-    argParser.add_argument("--CalcClassicalMetrics", action="store_true") # Compute classical metrics from algebraic and spectral graph theory
-    argParser.add_argument("--CalcBC", action="store_true") # Compute betweenness centrality for each vertex
-    argParser.add_argument("--CalcAvgNC", action="store_true")
-
-    # Meshed Tree Algorithm (MTA) simulation options depending on how it is implemented
-    argParser.add_argument("--MTA") # MTA - Remedy Path (no bundle limit)
-    argParser.add_argument("--NPaths") # MTA - Backup or Remedy Path (N paths in bundle limit)
-
-    # IEEE Rapid Spanning Tree Algorithm (Rapid STA) simulation options
-    argParser.add_argument("--RSTA") # Root pre-designated by adding it as argument
-
-    # Dijkstra's Algorithm
-    argParser.add_argument("--DA") # Argument of the root of the SPT
-
-    # Get a visual of the batch test results
-    argParser.add_argument("--plot", action="store_true")
-
-    # Get figures/plots of data collected
-    argParser.add_argument("--stats") # Argument of the name of the topology
-
-    # Allow the user to remove an edge from the graph. 
-    # The algorithm being run will determine what happens based on that removed edge input
-    argParser.add_argument("-r", "--remove", type=int, nargs=2)
-
-    # Parse the arguments
-    args = argParser.parse_args()
-
-    return args
-
-def generateGraph(sourceInput):
-    graphFormat = sourceInput[0]
-
-    if(graphFormat == "graphml" and len(sourceInput) == 2):
-        try:
-            G = nx.read_graphml(path=sourceInput[1], node_type=int) # Reads in names as ints for simplicity, may change back to str in the future
-        except FileNotFoundError:
-            print("graphml graph file {0} does not exist in this location".format(sourceInput[1]))
-            sys.exit()
-
-    elif(graphFormat == "ring" and len(sourceInput) == 2):
-        G = nx.cycle_graph(int(sourceInput[1]))
-
-    elif(graphFormat == "random" and len(sourceInput) == 2):
-        hardCodedNumOfNodes = 25
-        probabilityForEdgeCreation = float(sourceInput[1])
-        G = GraphGenerator.generateErdosRenyiGraph(hardCodedNumOfNodes, probabilityForEdgeCreation)
-
-    else:
-        sys.exit("Error: invalid source, please try again using RSPEC, graphml, random, or simulation")
-
-    return G
+# Configuration
+import parseConfig as config
 
 def computeMetrics(calcOptions, G):
     if(calcOptions["Classical"]):
@@ -108,9 +45,7 @@ def removedEdge(Graph, edge):
         return None
 
 '''
-#######
-main 
-#######
+main, entry to program 
 
 # NetworkX graph used:
 # |Type       | Self-Loops | Parallel Edges|
@@ -118,86 +53,33 @@ main
 '''
 def main():
     # Read in command-line arguments
-    args = parseArgs()
+    args = config.parseArgs()
 
-    # Create a structure to hold graphs for batch testing (if needed)
-    graphList = [] # A place to hold ya graphs
+    # Read the JSON files to determine what the graph and setup looks like
+    programConfig = config.parseSettingsConfig()
+    graphConfig = config.parseGraphConfig()
 
-    if(args.test):
-        if(len(args.test) < 3):
-            print("error: Missing test arguments")
-            sys.exit(0)
+    # Determine how many graphs are to be created
+    typeOfTest = graphConfig["type"]
+    typeOfGraph = graphConfig["choice"]
 
-        testType = args.test[0]
-        minValue = args.test[1]
-        maxValue = int(args.test[2])
+    if(typeOfTest == None or typeOfGraph == None):
+        print("ERROR: type and/or choice JSON object has a null value")
+        sys.exit()
 
-        notFinished = True
+    # Generate a single graph of the given type
+    if(typeOfTest == "single"):
+        G = generator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], programConfig["graphs"])
 
-        # Scale the number of vertices
-        if(testType == "vertex"):
-            numberOfVerticies = int(minValue)
+        # If you want to see a picture of the graph
+        if(args.picture):
+            A = nx.nx_agraph.to_agraph(G)
+            A.layout(prog="dot")
+            A.draw(getFile(programConfig["results"]["figure"], args.picture + ".png"))
 
-            if(args.test[3]):
-                edgeProb = float(args.test[3])
-            else:
-                edgeProb = .5
-
-            if(args.test[4] != "None"):
-                seed = int(args.test[4])
-            else:
-                seed = None
-
-            while(notFinished):
-                G = GraphGenerator.generateErdosRenyiGraph(numberOfVerticies, edgeProb, inputSeed=seed)
-
-                if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
-                    graphList.append(G)
-                    numberOfVerticies += 1
-
-                    if(numberOfVerticies == maxValue+1):
-                        notFinished = False
-
-        # Scale the number of edges
-        elif(testType == "edge"):
-            numberOfEdges = int(minValue)
-
-            if(args.test[3]):
-                numberOfVerticies = int(args.test[3])
-            else:
-                print("error: must include # of verticies for k-regular test")
-                sys.exit()
-
-            if(numberOfVerticies % 2 != 0):
-                print("error: k-regular tests must have an even number of vertices")
-                sys.exit()
-
-            if(args.test[4] != "None"):
-                seed = int(args.test[4])
-            else:
-                seed = None
-
-            while(notFinished):
-                G = GraphGenerator.generateRegularGraph(numberOfEdges, numberOfVerticies, inputSeed=seed)
-
-                if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
-                    graphList.append(G)
-                    numberOfEdges += 1
-
-                    if(numberOfEdges == maxValue+1):
-                        notFinished = False
-
-    else:
-        G = generateGraph(args.source) # Generate a graph to use for calculations
-
-    ## Run one of the algorithms for initial SPT convergence
-    # Rapid Spanning Tree Algorithm
-    if(args.RSTA):
-        if(args.test):
-            for graph in graphList:
-                RSTA.init(G=graph, r=0, loggingStatus=True, batch=True)
-            plotName = "RSTA"
-        else:
+        ## Run one of the algorithms for initial SPT convergence
+        # Rapid Spanning Tree Algorithm
+        if(args.algorithm == "rsta"):
             RSTA.init(G, int(args.RSTA), args.log) # 5/20/22 --> UPDATE FOR INT-NAMED VERTICIES
 
             if(args.remove):            
@@ -214,23 +96,13 @@ def main():
                     print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
                     sys.exit(0)
 
-    # Meshed Tree Algorithm - N-Paths
-    elif(args.NPaths):
-        if(args.test):
-            for graph in graphList:
-                MTP_NPaths.init(Graph=graph, root=0, loggingStatus=True, batch=True)
-            plotName = "MTA N-Paths"
-        else:
+        # Meshed Tree Algorithm - N-Paths
+        elif(args.algorithm == "npaths"):
             # If a valid edge is to be removed, it will be included in the analysis
-            MTP_NPaths.init(Graph=G, root=int(args.NPaths), loggingStatus=args.log, remedyPaths=True, removal=removedEdge(G, args.remove))
+            MTP_NPaths.init(Graph=G, root=int(args.root), logFilePath=programConfig["results"]["log"], remedyPaths=args.remedy, m=args.backups, removal=removedEdge(G, args.remove))
 
-    # Meshed Tree Algorithm - Remedy Paths 
-    elif(args.MTA):
-        if(args.test):
-            for graph in graphList:
-                MTA_RP.init(Graph=graph, root=0, loggingStatus=True, batch=True)
-            plotName = "MTA Remedy"
-        else:
+        # Meshed Tree Algorithm - Remedy Paths 
+        elif(args.algorithm == "remedy"):
             MTA_RP.init(G, int(args.MTA), args.log)
 
             if(args.remove):            
@@ -247,19 +119,10 @@ def main():
                     print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
                     sys.exit(0)
 
-    # Dijkstra's Algorithm
-    elif(args.DA):
-        if(args.test):
-            for graph in graphList:
-                DA.init(Graph=graph, source=0, loggingStatus=True, batch=True)
-            plotName = "Dijkstra's Algo"
-        else:
+        # Dijkstra's Algorithm
+        elif(args.algorithm == "da"):
             DA.init(Graph=G, source=int(args.DA))
 
-    # We just want to look at the graph, no algorithm to study for additional info
-
-    if(args.plot):
-        plotResults(plotName)
 
 if __name__ == "__main__":
     main()

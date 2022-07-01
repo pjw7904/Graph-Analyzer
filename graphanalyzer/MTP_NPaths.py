@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
+from os.path import join as getFile
 from TreeAnalyzer import TreeValidator
 from networkx import single_source_shortest_path_length
 from networkx import write_graphml
@@ -13,8 +14,8 @@ import uuid; # for output testing
 # Constants
 #
 TOP_NODE = 0
-LOG_FILE = "results/log_results/MTA_NPath_Output.log"
-LOG_FILE_BATCH = "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results/MTA_NPath_batch_test.csv"
+LOG_FILE = "MTA_NPath_Output.log"
+LOG_FILE_BATCH = "MTA_NPath_batch_test.csv"
 LOG_FILE_ERROR = "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results/VmFailure_{}.graphml"
 
 '''
@@ -48,14 +49,14 @@ Meshed Tree Algorithm, N-Paths (MTA N-Paths)
 
 Graph = The graph the algorithm is run on
 root = The root of the tree
-loggingStatus = If algorithm process and/or result should be logged to a file
+logFile = File to log results to
 m = The maximum number of backup paths a vertex can hold in its path bundle 
 batch = If batch testing (multiple tests one after the other rapidly) is being performed
 removal = If an edge is to be removed after the init convergence, to study how the graph looks as a result
 '''
-def init(Graph, root, loggingStatus, remedyPaths=False, m=2, batch=False, removal=None):
+def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=None):
     # Determine amount of information added to log file
-    setLoggingLevel(loggingStatus, batch)
+    setLoggingLevel(logFilePath, batch)
 
     # Every vertex is given a single-character ID (starting with 'A')
     createMeshedTreeDatatStructures(Graph, root) 
@@ -367,13 +368,12 @@ def calculateNetworkSurvival(G, root, m):
     return Vm, probNetworkSurival
 
 
-def setLoggingLevel(requiresLogging, batch):
-    if(requiresLogging):
-        if(batch):
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE_BATCH, filemode='a', level=logging.ERROR) 
-        else:
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE, filemode='w', level=logging.WARNING)
+def setLoggingLevel(logFilePath, batch):
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
     else:
-        logging.basicConfig(level=logging.CRITICAL)
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
+#    else:
+#        logging.basicConfig(level=logging.CRITICAL)
 
     return

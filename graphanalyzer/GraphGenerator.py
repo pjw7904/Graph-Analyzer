@@ -1,5 +1,43 @@
+from random import seed
 import sys
 import networkx as nx
+from os.path import join as getFile
+
+'''
+Generate a single graph to study
+'''
+def generateGraph(graphType, graphConfig, graphDirectory):
+    maxAttempts = 25
+    currentAttempt = 0
+
+    if(graphType == "graphml"):
+        return fromGraphml(getFile(graphDirectory, graphConfig["fileName"]))
+    else:
+        while(currentAttempt != maxAttempts):
+            if(graphType == "binomial"):
+                G = generateBinomialGraph(graphConfig["numberOfVertices"], graphConfig["edgeProbability"])
+            elif(graphType == "smallWorld"):
+                G = generateSmallWorldGraph(graphConfig["numberOfVertices"], graphConfig["connectedNearestNeighbors"], graphConfig["rewiringProbability"])
+            elif(graphType == "harary"):
+                G = generateHararyGraph(graphConfig["nodeConnectivity"], graphConfig["numberOfVertices"])
+            elif(graphType == "kRegular"):
+                G = generateRegularGraph(graphConfig["sharedDegree"], graphConfig["numberOfVertices"])
+            elif(graphType == "torus"):
+                G = generateTorusGraph(graphConfig["rowsOfVertices"], graphConfig["columnsOfVertices"])
+            elif(graphType == "ring"):
+                G = generateRingGraph(graphConfig["numberOfVertices"])
+            elif(graphType == "internet"):
+                G = generateInternetGraph(graphConfig["numberOfVertices"])
+            elif(graphType == "foldedClos"):
+                G = generateFoldedClosGraph(graphConfig["sharedDegree"], graphConfig["numberOfTiers"])
+            
+            if(isValidGraph(G)):
+                return G
+            else:
+                currentAttempt += 1
+
+    # If a graph cannot be generated, don't return anything
+    raise nx.NetworkXError("Maximum number of tries exceeded to generate graph with valid constraints. Please modify configuration")
 
 
 '''
@@ -21,8 +59,41 @@ n = Number of vertices
 p = Probability of edge creation between two vertices
 seed = seed value for generation
 '''
-def generateErdosRenyiGraph(n, p, inputSeed=None):
+def generateBinomialGraph(n, p, inputSeed=None):
     return nx.gnp_random_graph(n, p, seed=inputSeed, directed=False)
+
+'''
+n = Number of vertices
+k = Each vertex is joined with its k nearest neighbors in a ring topology
+p = The probability of rewiring each edge
+tries = Number of attempts to generate a connected graph
+'''
+def generateSmallWorldGraph(n, k, p, tries=5, inputSeed=None):
+    return nx.connected_watts_strogatz_graph(n, k, p, tries=tries, seed=inputSeed)
+
+'''
+Harary Graph
+k = Node-connectivity of graph
+n = Number of verticies
+'''
+def generateHararyGraph(k, n, inputSeed=None):
+    return nx.hkn_harary_graph(k, n, seed=inputSeed)
+
+'''
+K-Regular Graph
+d = Degree shared by each node
+n = Number of verticies
+'''
+def generateRegularGraph(d, n, inputSeed=None):
+    return nx.random_regular_graph(d, n, seed=inputSeed)
+
+'''
+Torus Graph
+m = rows of vertices
+n = columns of vertices
+'''
+def generateTorusGraph(m, n):
+    return nx.grid_2d_graph(m,n,periodic=True)
 
 '''
 Ring Graph
@@ -32,20 +103,11 @@ def generateRingGraph(n):
     return nx.cycle_graph(n)
 
 '''
-Harary Graph
-k = Node-connectivity of graph
-n = Number of verticies
+Internet (AS-level) Graph
+n = number of graph vertcies, must be in the range 1000-10000
 '''
-def generateHararyGraph(k, n):
-    return nx.hkn_harary_graph(k, n)
-
-'''
-K-Regular Graph
-d = Degree shared by each node
-n = Number of verticies
-'''
-def generateRegularGraph(d, n, inputSeed=None):
-    return nx.random_regular_graph(d,n, seed=inputSeed)
+def generateInternetGraph(n, inputSeed=None):
+    return nx.random_internet_as_graph(n, seed=inputSeed)
 
 '''
 Folded-Clos/Fat-Tree Graph
@@ -97,21 +159,20 @@ def generateFoldedClosGraph(k, l):
         return
 
     numTopTierSpineNodes = (k/2)**(l-1)
-    numLeafNodes = 2*(k/2)**(l-1)
-    numOfHosts = 2*(k/2)**l
 
     if(l < 2):
-        print("tier value is less than 2")
-        return
-    elif(l == 2):
-        numOfPods = 1
-    elif(l > 2):
-        numOfPods = 2*(k/2)**(l-2)
-    
-    print("num of top tier nodes: {0}\nnum of leaf nodes: {1}\nnum of hosts: {2}\nnum of pods: {3}"
-        .format(numTopTierSpineNodes, numLeafNodes, numOfHosts, numOfPods))
+        raise nx.NetworkXError("folded-Clos topologies cannot have the number of tiers < 2. The minimum is 2.")
 
     G = nx.Graph()
     generatePod(G, l, k, numNodesAbove=numTopTierSpineNodes, topTier=True)
 
     return G
+
+'''
+Graph is checked to be valid based on our constraints
+'''
+def isValidGraph(G):
+    if(nx.is_connected(G) and nx.node_connectivity(G) >= 2):
+        return True 
+    else:
+        return False
