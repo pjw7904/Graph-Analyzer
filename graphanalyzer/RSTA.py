@@ -3,13 +3,14 @@ import logging
 from collections import namedtuple
 from operator import itemgetter
 from timeit import default_timer as timer # Get elasped time of execution
+from os.path import join as getFile
 
-# Location/name of the log file
-LOG_FILE = "results/log_results/RSTA_Output.log"
-LOG_FILE_BATCH = "results/log_results/batch_test.log"
-
-# Constant for popping in send queue
+#
+# Constants
+#
 TOP_NODE = 0
+LOG_FILE = "RSTA_Output.log"
+LOG_FILE_BATCH = "RSTA_batch_test.csv"
 
 # Vector that is exchanged between vertices to determine tree structure
 RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
@@ -17,17 +18,16 @@ RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
 # Sending Queue
 Q = []
 
-def setBIDs(G, root):
+def setBIDs(Graph, root):
     IDCount = 0
 
-    for node in G:
-        G.nodes[node]['BID'] = chr(65 + IDCount)
+    for node in sorted(Graph.nodes):
+        Graph.nodes[node]['BID'] = chr(65 + IDCount)
     
         if(node == root):
-            logging.warning("Root node is {0}, BID = {1}\n".format(node, G.nodes[node]['BID']))
-
+            logging.warning("Root node is {0}, BID = {1}\n".format(node, Graph.nodes[node]['BID']))
         else:
-            logging.warning("Non-Root node {0}, BID = {1}\n".format(node, G.nodes[node]['BID']))
+            logging.warning("Non-Root node {0}, BID = {1}\n".format(node, Graph.nodes[node]['BID']))
 
         IDCount += 1
 
@@ -57,8 +57,8 @@ Input:  Graph G, root node r
 
 Output: Parent structure, which will create a shortest path tree
 '''
-def init(G, r, loggingStatus, batch=False):
-    setLoggingLevel(loggingStatus, batch)
+def init(G, r, logFilePath, batch=False):
+    setLoggingLevel(logFilePath, batch)
     setBIDs(G, r)
     G.graph["step"] = 0
 
@@ -227,22 +227,10 @@ def firstVectorIsSuperior(senderVector, receiverVector):
 
     return isSuperior
 
-
-def setLoggingLevel(requiresLogging, batch):
-    if(requiresLogging):
-        if(batch):
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE_BATCH, filemode='a', level=logging.ERROR) 
-        else:
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE, filemode='w', level=logging.WARNING)
-    else:
-        logging.basicConfig(level=logging.CRITICAL)
-
-    return
-
-def vectorOutput(G):
-    for v in G:
+def vectorOutput(Graph):
+    for v in sorted(Graph.nodes):
         formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n\tAV({BID}) = {AV}\n"
-        logging.warning(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), AV=prettyVectorOutput(G,v, "AV")))
+        logging.warning(formattedOutput.format(nodeName=v, BID=Graph.nodes[v]['BID'], VV=prettyVectorOutput(Graph, v,"VV"), PV=prettyVectorOutput(Graph, v, "PV"), AV=prettyVectorOutput(Graph, v, "AV")))
 
     return
 
@@ -257,3 +245,11 @@ def isWeakenedParent(received, parent):
         return True
     else:
         return False
+
+def setLoggingLevel(logFilePath, batch):
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
+    else:
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
+
+    return

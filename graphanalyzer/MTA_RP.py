@@ -3,18 +3,19 @@ import logging
 
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
+from os.path import join as getFile
 import copy # Get the ability to perform a deep copy
 
 #
 # Constants
 #
 TOP_NODE = 0
-LOG_FILE = "results/log_results/MTA_RP_Output.log"
-LOG_FILE_BATCH = "results/log_results/batch_test.log"
+LOG_FILE = "MTA_RP_Output.log"
+LOG_FILE_BATCH = "MTA_RP_batch_test.csv"
 
-def init(Graph, root, loggingStatus, batch=False):
+def init(Graph, root, logFilePath, batch=False):
     # Startup tasks
-    setLoggingLevel(loggingStatus, batch)
+    setLoggingLevel(logFilePath, batch)
     defineMetrics(Graph)
     setVertexLabels(Graph, root)
 
@@ -302,17 +303,6 @@ def logPathBundles(Graph):
 
     return resultOutput
 
-def setLoggingLevel(requiresLogging, batch):
-    if(requiresLogging):
-        if(batch):
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE_BATCH, filemode='a', level=logging.ERROR) 
-        else:
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE, filemode='w', level=logging.WARNING)
-    else:
-        logging.basicConfig(level=logging.CRITICAL)
-
-    return
-
 def validateInitConvergence(G, root):
     for v in G:
         if(v != root):
@@ -329,3 +319,11 @@ def validateInitConvergence(G, root):
                 return False
 
     return True
+
+def setLoggingLevel(logFilePath, batch):
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
+    else:
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
+
+    return

@@ -3,29 +3,30 @@ DIJKSTRA'S ALGORITHM
 ==========================='''
 from networkx import get_node_attributes
 from timeit import default_timer as timer # Get elasped time of execution
+from os.path import join as getFile
 import logging
 
-# Location/name of the log file
-LOG_FILE = "results/log_results/DA_Output.log"
-LOG_FILE_BATCH = "results/log_results/batch_test.log"
+#
+# Constants
+#
+LOG_FILE = "DA_Output.log"
+LOG_FILE_BATCH = "DA_batch_test.csv"
 
-def init(Graph, source, loggingStatus, batch=False):
-    setLoggingLevel(loggingStatus, batch)
+def init(Graph, root, logFilePath, batch=False):
+    setLoggingLevel(logFilePath, batch)
 
     Graph.graph["DA"] = 0 # count number of iterations needed
     Graph.graph["DA_recv"] = 0
     Graph.graph["step"] = 0
     Graph.graph["DA_time"] = 0 # Elasped algorithm simulation execution time
 
-    logFile = open(LOG_FILE, "w")
-
     EDGE_COST = 1 # graphs are unweighted, all edges have a cost of 1
 
-    Graph.nodes[source]["dist"] = 0 # Assign the root/source the distance value 0 because you don't need to go anyway to get to it (you start there)
-    Graph.nodes[source]["parent"] = "NONE"
+    Graph.nodes[root]["dist"] = 0 # Assign the root the distance value 0 because you don't need to go anyway to get to it (you start there)
+    Graph.nodes[root]["parent"] = "NONE"
 
     for node in Graph:
-        if node != source:
+        if node != root:
             Graph.nodes[node]["dist"] = float('inf') # All other nodes in the graph are given the place-holder distance of infinity
             Graph.nodes[node]["parent"] = "udef"
 
@@ -38,11 +39,11 @@ def init(Graph, source, loggingStatus, batch=False):
     while Q:
         Graph.graph["DA"] += 1
 
-        # get the node with the lowest distance value, which starts with the root/source
+        # get the node with the lowest distance value, which starts with the root
         v = min(Q, key=Q.get)
         Graph.graph["step"] += 1
 
-        logDAEvent("---------\n({0}) Visted Node: {1} | Distance: {2}\n".format(Graph.graph["DA"], v, Q[v]))    
+        logging.warning("---------\n({0}) Visted Node: {1} | Distance: {2}\n".format(Graph.graph["DA"], v, Q[v]))    
 
         # Now that the node has been "visted", it is deleted from the unvisited set
         del Q[v]
@@ -69,7 +70,7 @@ def init(Graph, source, loggingStatus, batch=False):
             else:
                 neighborInfo += "already visited\n"
             
-            logDAEvent(neighborInfo)
+            logging.warning(neighborInfo)
 
     # STOP TIMER
     endTime = timer()
@@ -79,12 +80,10 @@ def init(Graph, source, loggingStatus, batch=False):
 
     # log the resulting SPT and its associated data (node distance + parent)
     result = getNodeInfo(Graph)
-    logDAEvent("\n=====RESULT=====\n" + result)
+    logging.warning("\n=====RESULT=====\n" + result)
 
-    logDAEvent("\nTime to execute: {0}".format(endTime - startTime))
+    logging.warning("\nTime to execute: {0}".format(endTime - startTime))
     Graph.graph["DA_time"] = endTime - startTime
-
-    logFile.close()
 
     return
 
@@ -97,20 +96,10 @@ def getNodeInfo(Graph):
     
     return output
 
-
-# Log a given DA event
-def logDAEvent(eventMsg):
-    logging.warning(eventMsg)
-
-    return
-
-def setLoggingLevel(requiresLogging, batch):
-    if(requiresLogging):
-        if(batch):
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE_BATCH, filemode='a', level=logging.ERROR) 
-        else:
-            logging.basicConfig(format='%(message)s', filename=LOG_FILE, filemode='w', level=logging.WARNING)
+def setLoggingLevel(logFilePath, batch):
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
     else:
-        logging.basicConfig(level=logging.CRITICAL)
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
 
     return

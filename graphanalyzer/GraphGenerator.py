@@ -46,7 +46,7 @@ sourceFile = the graphml file
 '''
 def fromGraphml(sourceFile):
     try:
-        G = nx.read_graphml(path=sourceFile)
+        G = nx.read_graphml(path=sourceFile, node_type=int)
     except FileNotFoundError:
         print("graphml graph file {0} does not exist in this location".format(sourceFile))
         sys.exit()

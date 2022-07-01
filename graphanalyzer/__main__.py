@@ -23,20 +23,6 @@ import GraphGenerator as generator # Generate graphs via well-known algorithms
 # Configuration
 import parseConfig as config
 
-def computeMetrics(calcOptions, G):
-    if(calcOptions["Classical"]):
-        results = ClassicalMetrics.calculateClassicalMetricsResults(G)
-        print("{Header}\n{Results}\n".format(Header="____CLASSICAL METRICS____", Results=tabulate(results, headers=["Metric", "Results"], numalign="right", floatfmt=".4f")))
-
-    if(calcOptions["BC"]):
-        results = ClassicalMetrics.calculatePerNodeBetweennessCentrality(G)
-        print("{Header}\n{Results}\n".format(Header="____BETWEENNESS CENTRALITY____", Results=tabulate(results, headers=["Node", "Results"], numalign="right", floatfmt=".4f")))
-
-    if(calcOptions["AvgNC"]):
-        results = ClassicalMetrics.calculatePerDegreeAvgNeighborConnectivity(G)
-        print("{Header}\n{Results}\n".format(Header="____AVG NEIGHBOR CONNECTIVITY____", Results=tabulate(results, headers=["Degree", "Results"], numalign="right", floatfmt=".4f")))
-
-    return
 
 def removedEdge(Graph, edge):
     if(edge and len(edge) == 2 and Graph.has_edge(int(edge[0]), int(edge[1]))):
@@ -80,31 +66,9 @@ def main():
         ## Run one of the algorithms for initial SPT convergence
         # Rapid Spanning Tree Algorithm
         if(args.algorithm == "rsta"):
-            RSTA.init(G, int(args.RSTA), args.log) # 5/20/22 --> UPDATE FOR INT-NAMED VERTICIES
+            RSTA.init(G=G, r=args.root, logFilePath=programConfig["results"]["log"])
 
-            if(args.remove):            
-                if (len(args.remove) == 2):
-                    try:
-                        G.remove_edge(int(args.remove[0]), int(args.remove[1]))
-                    except NetworkXError:
-                        print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
-                        sys.exit(0)
-
-                    RSTA.reconverge(G, args.RSTA, int(args.remove[0]), int(args.remove[1]))
-
-                else:
-                    print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
-                    sys.exit(0)
-
-        # Meshed Tree Algorithm - N-Paths
-        elif(args.algorithm == "npaths"):
-            # If a valid edge is to be removed, it will be included in the analysis
-            MTP_NPaths.init(Graph=G, root=int(args.root), logFilePath=programConfig["results"]["log"], remedyPaths=args.remedy, m=args.backups, removal=removedEdge(G, args.remove))
-
-        # Meshed Tree Algorithm - Remedy Paths 
-        elif(args.algorithm == "remedy"):
-            MTA_RP.init(G, int(args.MTA), args.log)
-
+            # Does not fully work yet, TBD
             if(args.remove):            
                 if (len(args.remove) == 2):
                     try:
@@ -113,7 +77,31 @@ def main():
                         print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
                         sys.exit(0)
 
-                    MTA_RP.MTA_reconverge(G, int(args.remove[0]), int(args.remove[1]))
+                    RSTA.reconverge(G, args.RSTA, args.remove[0], args.remove[1])
+
+                else:
+                    print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
+                    sys.exit(0)
+
+        # Meshed Tree Algorithm - N-Paths
+        elif(args.algorithm == "npaths"):
+            # If a valid edge is to be removed, it will be included in the analysis
+            MTP_NPaths.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], remedyPaths=args.remedy, m=args.backups, removal=removedEdge(G, args.remove))
+
+        # Meshed Tree Algorithm - Remedy Paths 
+        elif(args.algorithm == "mta"):
+            MTA_RP.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"])
+
+            # Does not fully work yet, TBD
+            if(args.remove):            
+                if (len(args.remove) == 2):
+                    try:
+                        G.remove_edge(args.remove[0], args.remove[1])
+                    except NetworkXError:
+                        print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
+                        sys.exit(0)
+
+                    MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
 
                 else:
                     print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
@@ -121,7 +109,7 @@ def main():
 
         # Dijkstra's Algorithm
         elif(args.algorithm == "da"):
-            DA.init(Graph=G, source=int(args.DA))
+            DA.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"])
 
 
 if __name__ == "__main__":
