@@ -45,9 +45,10 @@ def main():
     programConfig = config.parseSettingsConfig()
     graphConfig = config.parseGraphConfig()
 
-    # Determine how many graphs are to be created
+    # Graph meta-information
     typeOfTest = graphConfig["type"]
     typeOfGraph = graphConfig["choice"]
+    nameOfTest = graphConfig["name"]
 
     if(typeOfTest == None or typeOfGraph == None):
         print("ERROR: type and/or choice JSON object has a null value")
@@ -61,12 +62,12 @@ def main():
         if(args.picture):
             A = nx.nx_agraph.to_agraph(G)
             A.layout(prog="dot")
-            A.draw(getFile(programConfig["results"]["figure"], args.picture + ".png"))
+            A.draw(getFile(programConfig["results"]["figure"], nameOfTest + ".png"))
 
         ## Run one of the algorithms for initial SPT convergence
         # Rapid Spanning Tree Algorithm
         if(args.algorithm == "rsta"):
-            RSTA.init(G=G, r=args.root, logFilePath=programConfig["results"]["log"])
+            RSTA.init(G=G, r=args.root, logFilePath=programConfig["results"]["log"], testName=nameOfTest)
 
             # Does not fully work yet, TBD
             if(args.remove):            
@@ -86,11 +87,11 @@ def main():
         # Meshed Tree Algorithm - N-Paths
         elif(args.algorithm == "npaths"):
             # If a valid edge is to be removed, it will be included in the analysis
-            MTP_NPaths.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], remedyPaths=args.remedy, m=args.backups, removal=removedEdge(G, args.remove))
+            MTP_NPaths.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], remedyPaths=args.remedy, m=args.backups, removal=removedEdge(G, args.remove), testName=nameOfTest)
 
         # Meshed Tree Algorithm - Remedy Paths 
         elif(args.algorithm == "mta"):
-            MTA_RP.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"])
+            MTA_RP.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], testName=nameOfTest)
 
             # Does not fully work yet, TBD
             if(args.remove):            
@@ -109,7 +110,7 @@ def main():
 
         # Dijkstra's Algorithm
         elif(args.algorithm == "da"):
-            DA.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"])
+            DA.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], testName=nameOfTest)
 
 
 if __name__ == "__main__":

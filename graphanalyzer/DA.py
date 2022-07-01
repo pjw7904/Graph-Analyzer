@@ -1,6 +1,9 @@
-'''===========================
+#!/usr/bin/env python
+'''
+===========================
 DIJKSTRA'S ALGORITHM
-==========================='''
+===========================
+'''
 from networkx import get_node_attributes
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
@@ -9,11 +12,11 @@ import logging
 #
 # Constants
 #
-LOG_FILE = "DA_Output.log"
-LOG_FILE_BATCH = "DA_batch_test.csv"
+LOG_FILE = "{}DA_Output.log"
+LOG_FILE_BATCH = "{}DA_batch_test.csv"
 
-def init(Graph, root, logFilePath, batch=False):
-    setLoggingLevel(logFilePath, batch)
+def init(Graph, root, logFilePath, batch=False, testName=None):
+    setLoggingLevel(logFilePath, batch, testName)
 
     Graph.graph["DA"] = 0 # count number of iterations needed
     Graph.graph["DA_recv"] = 0
@@ -96,10 +99,15 @@ def getNodeInfo(Graph):
     
     return output
 
-def setLoggingLevel(logFilePath, batch):
-    if(batch):
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
+def setLoggingLevel(logFilePath, batch, testName):
+    if(testName):
+        testName = testName + "_"
     else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
+        testName = ""
+
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
+    else:
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName)), filemode='w', level=logging.WARNING)
 
     return

@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+'''
+===========================
+MESHED TREE ALGORITHM - N PATHS
+===========================
+'''
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
@@ -14,8 +19,8 @@ import uuid; # for output testing
 # Constants
 #
 TOP_NODE = 0
-LOG_FILE = "MTA_NPath_Output.log"
-LOG_FILE_BATCH = "MTA_NPath_batch_test.csv"
+LOG_FILE = "{}MTA_NPath_Output.log"
+LOG_FILE_BATCH = "{}MTA_NPath_batch_test.csv"
 LOG_FILE_ERROR = "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results/VmFailure_{}.graphml"
 
 '''
@@ -54,9 +59,9 @@ m = The maximum number of backup paths a vertex can hold in its path bundle
 batch = If batch testing (multiple tests one after the other rapidly) is being performed
 removal = If an edge is to be removed after the init convergence, to study how the graph looks as a result
 '''
-def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=None):
+def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=None, testName=None):
     # Determine amount of information added to log file
-    setLoggingLevel(logFilePath, batch)
+    setLoggingLevel(logFilePath, batch, testName)
 
     # Every vertex is given a single-character ID (starting with 'A')
     createMeshedTreeDatatStructures(Graph, root) 
@@ -368,12 +373,15 @@ def calculateNetworkSurvival(G, root, m):
     return Vm, probNetworkSurival
 
 
-def setLoggingLevel(logFilePath, batch):
-    if(batch):
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
+def setLoggingLevel(logFilePath, batch, testName):
+    if(testName):
+        testName = testName + "_"
     else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
-#    else:
-#        logging.basicConfig(level=logging.CRITICAL)
+        testName = ""
+
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
+    else:
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName)), filemode='w', level=logging.WARNING)
 
     return

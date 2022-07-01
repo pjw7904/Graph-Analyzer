@@ -1,21 +1,25 @@
 #!/usr/bin/env python
-import logging
-
+'''
+===========================
+MESHED TREE ALGORITHM - REMEDY PATHS
+===========================
+'''
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
+import logging
 import copy # Get the ability to perform a deep copy
 
 #
 # Constants
 #
 TOP_NODE = 0
-LOG_FILE = "MTA_RP_Output.log"
-LOG_FILE_BATCH = "MTA_RP_batch_test.csv"
+LOG_FILE = "{}MTA_RP_Output.log"
+LOG_FILE_BATCH = "{}MTA_RP_batch_test.csv"
 
-def init(Graph, root, logFilePath, batch=False):
+def init(Graph, root, logFilePath, batch=False, testName=None):
     # Startup tasks
-    setLoggingLevel(logFilePath, batch)
+    setLoggingLevel(logFilePath, batch, testName)
     defineMetrics(Graph)
     setVertexLabels(Graph, root)
 
@@ -320,10 +324,15 @@ def validateInitConvergence(G, root):
 
     return True
 
-def setLoggingLevel(logFilePath, batch):
-    if(batch):
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
+def setLoggingLevel(logFilePath, batch, testName):
+    if(testName):
+        testName = testName + "_"
     else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
+        testName = ""
+
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
+    else:
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName)), filemode='w', level=logging.WARNING)
 
     return

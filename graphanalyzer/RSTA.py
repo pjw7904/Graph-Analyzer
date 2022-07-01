@@ -9,8 +9,8 @@ from os.path import join as getFile
 # Constants
 #
 TOP_NODE = 0
-LOG_FILE = "RSTA_Output.log"
-LOG_FILE_BATCH = "RSTA_batch_test.csv"
+LOG_FILE = "{}RSTA_Output.log"
+LOG_FILE_BATCH = "{}RSTA_batch_test.csv"
 
 # Vector that is exchanged between vertices to determine tree structure
 RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
@@ -57,8 +57,8 @@ Input:  Graph G, root node r
 
 Output: Parent structure, which will create a shortest path tree
 '''
-def init(G, r, logFilePath, batch=False):
-    setLoggingLevel(logFilePath, batch)
+def init(G, r, logFilePath, batch=False, testName=None):
+    setLoggingLevel(logFilePath, batch, testName)
     setBIDs(G, r)
     G.graph["step"] = 0
 
@@ -246,10 +246,15 @@ def isWeakenedParent(received, parent):
     else:
         return False
 
-def setLoggingLevel(logFilePath, batch):
-    if(batch):
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH), filemode='a', level=logging.ERROR) 
+def setLoggingLevel(logFilePath, batch, testName):
+    if(testName):
+        testName = testName + "_"
     else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE), filemode='w', level=logging.WARNING)
+        testName = ""
+
+    if(batch):
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
+    else:
+        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName)), filemode='w', level=logging.WARNING)
 
     return

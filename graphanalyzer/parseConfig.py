@@ -19,8 +19,8 @@ def parseArgs():
     argParser.add_argument("-r", "--remove", type=int, nargs=2, help="(all algorithms, only MTA N-paths confirmed to work) remove edge to test algorithm recovery") # Allow the user to remove an edge from the graph (result is algorithm-dependent)
 
     # Graph visualization
-    argParser.add_argument("-p", "--picture", help="Save Graphviz-generated picture of graph") # Graphviz-based
-    
+    argParser.add_argument("-p", "--picture", default=False, action="store_true", help="Save Graphviz-generated picture of graph") # Graphviz-based
+
     # Parse the arguments
     args = argParser.parse_args()
 

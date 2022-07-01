@@ -1,6 +1,7 @@
 {
     "type": "single",
-    "choice": "ring",
+    "choice": "graphml",
+    "name": "testest",
     "seed": null,
 
     "single":
