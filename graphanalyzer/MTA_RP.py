@@ -61,7 +61,7 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
     logging.warning("\nTime to execute: {0}".format(endTime - startTime))
     Graph.graph["MTA_time"] = endTime - startTime
 
-    # For batch testing
+    # For batch testing - numVerts,numEdges,numSteps
     logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
 
     return

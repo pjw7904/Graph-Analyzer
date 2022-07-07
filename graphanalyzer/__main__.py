@@ -18,7 +18,10 @@ import DA # Dijkstra's algorithm
 # Graph creation and analysis
 import ClassicalMetrics # Classic Graphy Theory metrics
 from plotBatchTest import plotResults # Plotting for batch testing
-import GraphGenerator as generator # Generate graphs via well-known algorithms
+import GraphGenerator # Generate graphs via well-known algorithms
+import FigureGenerator
+import TestGenerator
+import Algorithms
 
 # Configuration
 import parseConfig as config
@@ -56,61 +59,18 @@ def main():
 
     # Generate a single graph of the given type
     if(typeOfTest == "single"):
-        G = generator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], programConfig["graphs"])
+        graph = GraphGenerator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], programConfig["graphs"])
 
-        # If you want to see a picture of the graph
+        # Option if you want to see a picture of the graph (Graphviz-generated)
         if(args.picture):
-            A = nx.nx_agraph.to_agraph(G)
-            A.layout(prog="dot")
-            A.draw(getFile(programConfig["results"]["figure"], nameOfTest + ".png"))
+            FigureGenerator.drawGraph(graph, getFile(programConfig["results"]["figure"], nameOfTest + ".png"))
 
-        ## Run one of the algorithms for initial SPT convergence
-        # Rapid Spanning Tree Algorithm
-        if(args.algorithm == "rsta"):
-            RSTA.init(G=G, r=args.root, logFilePath=programConfig["results"]["log"], testName=nameOfTest)
+        if(args.algorithm != "none"):
+            # Run one of the algorithms for initial SPT convergence and potential further tests
+            Algorithms.runAlgorithmOnGraph(graph, args, programConfig["results"]["log"], nameOfTest)
 
-            # Does not fully work yet, TBD
-            if(args.remove):            
-                if (len(args.remove) == 2):
-                    try:
-                        G.remove_edge(args.remove[0], args.remove[1])
-                    except NetworkXError:
-                        print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
-                        sys.exit(0)
-
-                    RSTA.reconverge(G, args.RSTA, args.remove[0], args.remove[1])
-
-                else:
-                    print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
-                    sys.exit(0)
-
-        # Meshed Tree Algorithm - N-Paths
-        elif(args.algorithm == "npaths"):
-            # If a valid edge is to be removed, it will be included in the analysis
-            MTP_NPaths.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], remedyPaths=args.remedy, m=args.backups, removal=removedEdge(G, args.remove), testName=nameOfTest)
-
-        # Meshed Tree Algorithm - Remedy Paths 
-        elif(args.algorithm == "mta"):
-            MTA_RP.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], testName=nameOfTest)
-
-            # Does not fully work yet, TBD
-            if(args.remove):            
-                if (len(args.remove) == 2):
-                    try:
-                        G.remove_edge(args.remove[0], args.remove[1])
-                    except NetworkXError:
-                        print("ARGS ERROR (-r/--remove): edge to be removed does not exist")
-                        sys.exit(0)
-
-                    MTA_RP.MTA_reconverge(G, args.remove[0], args.remove[1])
-
-                else:
-                    print("ARGS ERROR (-r/--remove): two arguments are needed to remove an edge")
-                    sys.exit(0)
-
-        # Dijkstra's Algorithm
-        elif(args.algorithm == "da"):
-            DA.init(Graph=G, root=args.root, logFilePath=programConfig["results"]["log"], testName=nameOfTest)
+    #elif(typeOfTest == "batch"):
+        #call runBatchTest, but include args so you have the algorithm info to run it with, plus just update the argument for runAlgorithmOnGraph to take args as well.
 
 
 if __name__ == "__main__":

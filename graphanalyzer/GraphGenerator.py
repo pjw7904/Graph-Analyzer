@@ -6,7 +6,7 @@ from os.path import join as getFile
 '''
 Generate a single graph to study
 '''
-def generateGraph(graphType, graphConfig, graphDirectory):
+def generateGraph(graphType, graphConfig, graphDirectory=None):
     maxAttempts = 25
     currentAttempt = 0
 
@@ -30,6 +30,8 @@ def generateGraph(graphType, graphConfig, graphDirectory):
                 G = generateInternetGraph(graphConfig["numberOfVertices"])
             elif(graphType == "foldedClos"):
                 G = generateFoldedClosGraph(graphConfig["sharedDegree"], graphConfig["numberOfTiers"])
+            else:
+                raise nx.NetworkXError("Graph type is not valid")
             
             if(isValidGraph(G)):
                 return G
