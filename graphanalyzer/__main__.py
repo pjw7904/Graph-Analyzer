@@ -20,7 +20,7 @@ import ClassicalMetrics # Classic Graphy Theory metrics
 from plotBatchTest import plotResults # Plotting for batch testing
 import GraphGenerator # Generate graphs via well-known algorithms
 import FigureGenerator
-import TestGenerator
+#import TestGenerator
 import Algorithms
 
 # Configuration
