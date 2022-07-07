@@ -69,6 +69,9 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
     # Create a validation object to make sure the result is a tree
     treeValidator = TreeValidator(Graph.nodes, root) 
 
+    # step counter
+    Graph.graph["step"] = 0
+
     # Give each vertex an empty path bundle structure to start
     for vertex in Graph:
         if vertex != root:
@@ -78,6 +81,7 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
         else:
             # The root will add itself as the only path it will receive
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
+            Graph.graph["step"] += 1
             Graph.nodes[vertex]['done'] = True
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
@@ -99,6 +103,7 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
         # v is the top node in the sending queue, thus it is its turn to send its bundle
         v = sendingQueue[TOP_NODE]
         logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
+        Graph.graph["step"] += 1
 
         # For each neighbor x of v
         for x in Graph.neighbors(v):
@@ -109,7 +114,8 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
             if(Graph.nodes[x]['done'] == False):
                 # Append the ID of x to each of v's paths in its sent bundle if the path is not already in x's path bundle
                 validPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
-                
+                Graph.graph["step"] += len(validPaths)
+
                 # If there are paths left that survived the previous filter
                 if(validPaths):
                     logging.warning("\tNew path(s): {0}".format(validPaths))
@@ -125,6 +131,7 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
                         # Remove extra paths (keep only up to maxPaths)
                         logging.warning("\tRemoved paths: {0}".format(Graph.nodes[x]['pathBundle'][maxPaths:]))
                         del Graph.nodes[x]['pathBundle'][maxPaths:]
+                        Graph.graph["step"] += 1
                         Graph.nodes[x]['done'] = True
                         logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
                     
@@ -140,6 +147,7 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
                     # Add x to the sending queue if not already in the queue (watch this for algorithm errors)
                     if x not in sendingQueue:
                         sendingQueue.append(x)
+                        Graph.graph["step"] += 1
                         logging.warning("\tNode appended to sending queue.")
 
                 else:
@@ -149,6 +157,7 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
 
         # Remove v from the sending queue now that we are done with each neighbor
         sendingQueue.pop(TOP_NODE)
+        Graph.graph["step"] += 1
 
     # Log the resulting path bundles, tree, and statistics if necessary
     logging.warning("-----------\nFINAL RESULTS:\n")
@@ -169,13 +178,13 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
         
         # For batch testing removals
         if(batch):
-            logging.error("{0},{1},{2},{3},{4:.2f},{5},{6},{7},{8},{9:.2f},{10}"
-            .format(treeValidator.isTree(), Graph.number_of_nodes(), Graph.number_of_edges(), len(Vm), (probOfSurvival*100), removal, removalResults[0], removalResults[1], removalResults[2], removalResults[3], removalResults[4]))
+            logging.error("{},{},{},{},{},{:.2f},{},{},{},{},{:.2f},{}"
+            .format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"], treeValidator.isTree(), len(Vm), (probOfSurvival*100), removal, removalResults[0], removalResults[1], removalResults[2], removalResults[3], removalResults[4]))
 
     # if an edge is not being removed, but batch testing is occurring for the initial result
     elif(batch):
-        logging.error("{0},{1},{2},{3},{4:.2f}"
-        .format(treeValidator.isTree(), Graph.number_of_nodes(), Graph.number_of_edges(), len(Vm), (probOfSurvival*100)))
+        logging.error("{},{},{},{},{},{:.2f}"
+        .format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"], treeValidator.isTree(), len(Vm), (probOfSurvival*100)))
 
     # Return pertinent information, will change over time depending on the test 
     return Vm
@@ -341,7 +350,8 @@ def getPathEdgeSet(path):
 
 def mergePathBundles(pathBundle1, pathBundle2, Graph):
     greatBundle = []
-
+    Graph.graph["step"] += 1
+    
     if not pathBundle1 and not pathBundle2:
         return greatBundle
 
