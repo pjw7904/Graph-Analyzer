@@ -20,7 +20,7 @@ import uuid; # for output testing
 #
 TOP_NODE = 0
 LOG_FILE = "{}MTA_NPath_Output.log"
-LOG_FILE_BATCH = "{}MTA_NPath_batch_test.csv"
+LOG_FILE_BATCH = "{}batch_test.csv"
 LOG_FILE_ERROR = "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results/VmFailure_{}.graphml"
 
 '''

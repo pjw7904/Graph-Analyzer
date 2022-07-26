@@ -1,5 +1,5 @@
 ## Standard modules
-#from os.path import join as getFile
+from os.path import join as getFile
 
 ## External modules
 from networkx import nx_pydot as nxpd
@@ -14,44 +14,29 @@ def drawGraph(graph, figurePath):
     return
 
 '''
-#Graphviz figure - pygraphviz package
-
-from networkx import nx_agraph as nxgraph
-
-def drawGraphPyGraphviz(graph, figurePath):
-    A = nxgraph.to_agraph(graph)
-    A.layout(prog="dot")
-    A.draw(figurePath)
-
-    return
-'''
-
-'''
 Histogram - Steps 
 '''
-def plotAlgorithmSteps(algoName, batchResultsPath):
+def plotAlgorithmSteps(algoName, testName, batchResultsPath, figurePath):
     with open(batchResultsPath) as f:
-        v = np.loadtxt(f, delimiter=",", usecols=None) # update usecols appropriately
-
-    size = int((v.size / 3) + (v.size % 3))
+        data = np.loadtxt(f, delimiter=",", usecols=(0,1,2))
 
     # Start of all batch tests rows are numVerts,numEdges,numSteps
-    vertexAxis = [v[i][0] for i in range(0, size)]
-    edgeAxis   = [v[i][1] for i in range(0, size)]
-    stepAxis   = [v[i][2] for i in range(0, size)]
+    vertexAxis = data[:,0].tolist()
+    edgeAxis   = data[:,1].tolist()
+    stepAxis   = data[:,2].tolist()
 
     plt.bar(edgeAxis, stepAxis)
-    plt.title("Number of steps in {0}".format(algoName))
+    plt.title("{0} - {1} - steps".format(testName, algoName))
     plt.xlabel("Number of edges")
     plt.ylabel("Number of steps")
-    plt.savefig('results/fig_results/{0}_steps_edges.png'.format(algoName))
+    plt.savefig(getFile(figurePath, testName + "_steps_edges.png"))
     plt.close()
 
     plt.bar(vertexAxis, edgeAxis)
-    plt.title("Number of edges in {0}".format(algoName))
+    plt.title(" {0} - {1} - edges".format(testName, algoName))
     plt.ylabel("Number of edges")
     plt.xlabel("Number of nodes")
-    plt.savefig('results/fig_results/{0}_edges_nodes.png'.format(algoName))
+    plt.savefig(getFile(figurePath, testName + "_edges_nodes.png"))
     plt.close()
 
     return

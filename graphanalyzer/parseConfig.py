@@ -20,6 +20,7 @@ def parseArgs():
 
     # Graph visualization
     argParser.add_argument("-p", "--picture", default=False, action="store_true", help="Save Graphviz-generated picture of graph") # Graphviz-based
+    argParser.add_argument("-g", "--graph", default=False, action="store_true", help="Save a figure based on batch testing results") # Pyplot-based
 
     # Parse the arguments
     args = argParser.parse_args()
@@ -32,6 +33,7 @@ Parse JSON settings configuration file
 def parseSettingsConfig():
     with open("config.json") as file:
         data = json.load(file)
+
     return data
 
 '''
@@ -40,4 +42,5 @@ Parse JSON graph configuration file
 def parseGraphConfig():
     with open("graph.json") as file:
         data = json.load(file)
+        
     return data

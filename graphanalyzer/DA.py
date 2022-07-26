@@ -13,7 +13,7 @@ import logging
 # Constants
 #
 LOG_FILE = "{}DA_Output.log"
-LOG_FILE_BATCH = "{}DA_batch_test.csv"
+LOG_FILE_BATCH = "{}batch_test.csv"
 
 def init(Graph, root, logFilePath, batch=False, testName=None):
     setLoggingLevel(logFilePath, batch, testName)

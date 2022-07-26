@@ -64,7 +64,7 @@ def main():
             Algorithms.runAlgorithmOnGraph(graph, args, programConfig["results"]["log"], nameOfTest)
 
     elif(typeOfTest == "batch"):
-        TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], nameOfTest)
+        TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], programConfig["results"]["figure"], nameOfTest)
 
 
 if __name__ == "__main__":

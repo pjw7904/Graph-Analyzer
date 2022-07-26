@@ -10,7 +10,7 @@ from os.path import join as getFile
 #
 TOP_NODE = 0
 LOG_FILE = "{}RSTA_Output.log"
-LOG_FILE_BATCH = "{}RSTA_batch_test.csv"
+LOG_FILE_BATCH = "{}batch_test.csv"
 
 # Vector that is exchanged between vertices to determine tree structure
 RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
