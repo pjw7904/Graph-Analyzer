@@ -3,27 +3,31 @@ import MTA_RP # MTA Remedy Path algorithm
 import MTP_NPaths # MTA N-Path algorithm
 import RSTA # Rapid Spanning Tree algorithm
 import DA # Dijkstra's algorithm
+import networkx as nx
 
 '''
 Run the specified SPT algorithm with any included additional options
 '''
-def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest):
+def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     # Rapid Spanning Tree Algorithm
     if(args.algorithm == "rsta"):
-        RSTA.init(G=graph, r=args.root, logFilePath=logFilePath, testName=nameOfTest)
+        RSTA.init(G=graph, r=args.root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
     # Meshed Tree Algorithm - N-Paths
     elif(args.algorithm == "npaths"):
         # If a valid edge is to be removed, it will be included in the analysis
-        MTP_NPaths.init(Graph=graph, root=args.root, logFilePath=logFilePath, remedyPaths=args.remedy, m=args.backups, removal=removedEdge(graph, args.remove), testName=nameOfTest)
+        MTP_NPaths.init(Graph=graph, root=args.root, logFilePath=logFilePath, remedyPaths=args.remedy, m=args.backups, batch=batch, removal=removedEdge(graph, args.remove), testName=nameOfTest)
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.algorithm == "mta"):
-        MTA_RP.init(Graph=graph, root=args.root, logFilePath=logFilePath, testName=nameOfTest)
+        MTA_RP.init(Graph=graph, root=args.root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
     # Dijkstra's Algorithm
     elif(args.algorithm == "da"):
-        DA.init(Graph=graph, root=args.root, logFilePath=logFilePath, testName=nameOfTest)
+        DA.init(Graph=graph, root=args.root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+
+    else:
+        raise nx.NetworkXError("Graph type is not valid")
 
     return
 

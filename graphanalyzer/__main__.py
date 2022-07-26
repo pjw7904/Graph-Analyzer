@@ -20,18 +20,12 @@ import ClassicalMetrics # Classic Graphy Theory metrics
 from plotBatchTest import plotResults # Plotting for batch testing
 import GraphGenerator # Generate graphs via well-known algorithms
 import FigureGenerator
-#import TestGenerator
+import TestGenerator
 import Algorithms
 
 # Configuration
 import parseConfig as config
 
-
-def removedEdge(Graph, edge):
-    if(edge and len(edge) == 2 and Graph.has_edge(int(edge[0]), int(edge[1]))):
-        return edge
-    else:
-        return None
 
 '''
 main, entry to program 
@@ -69,8 +63,8 @@ def main():
             # Run one of the algorithms for initial SPT convergence and potential further tests
             Algorithms.runAlgorithmOnGraph(graph, args, programConfig["results"]["log"], nameOfTest)
 
-    #elif(typeOfTest == "batch"):
-        #call runBatchTest, but include args so you have the algorithm info to run it with, plus just update the argument for runAlgorithmOnGraph to take args as well.
+    elif(typeOfTest == "batch"):
+        TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], nameOfTest)
 
 
 if __name__ == "__main__":

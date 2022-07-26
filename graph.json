@@ -1,7 +1,7 @@
 {
-    "type": "single",
-    "choice": "graphml",
-    "name": "testest",
+    "type": "batch",
+    "choice": "kRegular_scale_edges",
+    "name": "something",
     "seed": null,
 
     "single":
@@ -28,8 +28,8 @@
             },
         "kRegular":
             {
-                "sharedDegree": null,
-                "numberOfVertices": null
+                "sharedDegree": 3,
+                "numberOfVertices": 20
             },
         "torus":
             {
@@ -53,6 +53,17 @@
 
     "batch":
     {
-        "test": null
+        "binomial_scale_vertices":
+            {
+                "edgeProbability": 0.5,
+                "startingNumberOfVertices": 20,
+                "endingNumberOfVertices": 30
+            },
+        "kRegular_scale_edges":
+            {
+                "numberOfVertices": 20,
+                "startingkRegular": 2,
+                "endingkRegular": 5
+            }
     }
 }
