@@ -10,7 +10,7 @@ def parseArgs():
     argParser = argparse.ArgumentParser(description="Graph and shortest path tree algorithm analysis script. Please update JSON config files before running.")
 
     # Tree algorithms
-    argParser.add_argument('algorithm', choices=["mta", "npaths", "rsta", "da", "none"], help="tree algorithm to run on graph (or none).")
+    argParser.add_argument('algorithm', choices=["mta", "npaths", "bfs", "rsta", "da", "none"], help="tree algorithm to run on graph (or none).")
 
     # Tree algorithm modifiers
     argParser.add_argument('--root', default=0, type=int, metavar="vertex", help="the root of the tree (leave blank for none)")

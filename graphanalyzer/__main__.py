@@ -17,7 +17,6 @@ import DA # Dijkstra's algorithm
 
 # Graph creation and analysis
 import ClassicalMetrics # Classic Graphy Theory metrics
-from plotBatchTest import plotResults # Plotting for batch testing
 import GraphGenerator # Generate graphs via well-known algorithms
 import FigureGenerator
 import TestGenerator
@@ -65,7 +64,6 @@ def main():
 
     elif(typeOfTest == "batch"):
         TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], programConfig["results"]["figure"], nameOfTest)
-
 
 if __name__ == "__main__":
     main()
