@@ -350,7 +350,8 @@ def getPathEdgeSet(path):
 
 def mergePathBundles(pathBundle1, pathBundle2, Graph):
     greatBundle = []
-    Graph.graph["step"] += 1
+    # Removed due to conneciton with BFS code for now
+    #Graph.graph["step"] += 1
     
     if not pathBundle1 and not pathBundle2:
         return greatBundle
