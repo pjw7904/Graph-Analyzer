@@ -13,7 +13,7 @@ def generateGraph(graphType, graphConfig, seed=None, graphDirectory=None):
     if(graphType == "graphml"):
         return fromGraphml(getFile(graphDirectory, graphConfig["fileName"]))
     elif(graphType == "leg"):
-        return generateLeg(graphConfig["legLength"])
+        return generateRingLegs() # graphConfig["legLength"]
     else:
         while(currentAttempt != maxAttempts):
             if(graphType == "binomial"):
@@ -43,7 +43,6 @@ def generateGraph(graphType, graphConfig, seed=None, graphDirectory=None):
     # If a graph cannot be generated, don't return anything
     raise nx.NetworkXError("Maximum number of tries exceeded to generate graph with valid constraints. Please modify configuration")
 
-
 '''
 Graphml Graph (import)
 sourceFile = the graphml file
@@ -56,6 +55,15 @@ def fromGraphml(sourceFile):
         sys.exit()
 
     return G
+
+'''
+Graphml Graph (export)
+graph = the graph to export to graphml
+filePath = the path and name of the graphml file
+'''
+def toGraphml(graph, filePath):
+    nx.write_graphml(graph, filePath, prettyprint=True)
+    return
 
 '''
 Erdős-Rényi Graph
@@ -172,42 +180,63 @@ def generateFoldedClosGraph(k, l):
 
     return G
 
-def generateLeg(legLen, legNum=""):
+def generateRingLegs():
+    STANDARD_RING_LENGTH = 8
     graph = nx.Graph()
-    currentLen = 1
 
-    graph.add_edge("L{}_LF".format(legNum), "L{}_LT1".format(legNum))
-    graph.add_edge("L{}_LF".format(legNum), "L{}_LB1".format(legNum))
-    
-    graph.add_edge("L{}_RF".format(legNum), "L{}_RT1".format(legNum))
-    graph.add_edge("L{}_RF".format(legNum), "L{}_RB1".format(legNum))
-    
+    def generateLeg(legLen, legNum=""):
+        graph = nx.Graph()
+        currentLen = 1
 
-    while(currentLen != legLen+1):
-        # connect top and bottom
-        graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_LB{}".format(legNum, currentLen))
-        graph.add_edge("L{}_RT{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen))
+        graph.add_edge("L{}_LF".format(legNum), "L{}_LT1".format(legNum))
+        graph.add_edge("L{}_LF".format(legNum), "L{}_LB1".format(legNum))
+        
+        graph.add_edge("L{}_RF".format(legNum), "L{}_RT1".format(legNum))
+        graph.add_edge("L{}_RF".format(legNum), "L{}_RB1".format(legNum))
+        
+        while(currentLen != legLen+1):
+            # connect top and bottom
+            graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_LB{}".format(legNum, currentLen))
+            graph.add_edge("L{}_RT{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen))
 
-        # connect left and right
-        graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_RT{}".format(legNum, currentLen))
-        graph.add_edge("L{}_LB{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen))
+            # connect left and right
+            graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_RT{}".format(legNum, currentLen))
+            graph.add_edge("L{}_LB{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen))
 
-        if(currentLen != 1):
-            # connect to back
-            graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_LT{}".format(legNum, currentLen-1))
-            graph.add_edge("L{}_RT{}".format(legNum, currentLen), "L{}_RT{}".format(legNum, currentLen-1))
-            graph.add_edge("L{}_LB{}".format(legNum, currentLen), "L{}_LB{}".format(legNum, currentLen-1))
-            graph.add_edge("L{}_RB{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen-1))
+            if(currentLen != 1):
+                # connect to back
+                graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_LT{}".format(legNum, currentLen-1))
+                graph.add_edge("L{}_RT{}".format(legNum, currentLen), "L{}_RT{}".format(legNum, currentLen-1))
+                graph.add_edge("L{}_LB{}".format(legNum, currentLen), "L{}_LB{}".format(legNum, currentLen-1))
+                graph.add_edge("L{}_RB{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen-1))
 
-        currentLen += 1
+            currentLen += 1
 
-    graph.add_edge("L{}_E".format(legNum), "L{}_LT{}".format(legNum, legLen))
-    graph.add_edge("L{}_E".format(legNum), "L{}_RT{}".format(legNum, legLen))
-    graph.add_edge("L{}_E".format(legNum), "L{}_LB{}".format(legNum, legLen))
-    graph.add_edge("L{}_E".format(legNum), "L{}_RB{}".format(legNum, legLen))
+        graph.add_edge("L{}_E".format(legNum), "L{}_LT{}".format(legNum, legLen))
+        graph.add_edge("L{}_E".format(legNum), "L{}_RT{}".format(legNum, legLen))
+        graph.add_edge("L{}_E".format(legNum), "L{}_LB{}".format(legNum, legLen))
+        graph.add_edge("L{}_E".format(legNum), "L{}_RB{}".format(legNum, legLen))
+
+        return graph
+
+    # generate the ring
+    #ring = generateRingGraph(STANDARD_RING_LENGTH)
+
+    # generate 4 legs with a given leg length
+    for legNum in range(1,5):
+        graph.add_edges_from(generateLeg(2, str(legNum)).edges)
+    #graph.add_edges_from(ring.edges)
+
+    # attached the legs to the ring
+    for legNum in range(1,5):
+        graph.add_edge("L{}_LF".format(legNum), "L{}_RF".format(legNum))
+        
+        if(legNum != 4):
+            graph.add_edge("L{}_RF".format(legNum), "L{}_LF".format(legNum+1))
+        else:
+            graph.add_edge("L{}_RF".format(legNum), "L{}_LF".format(1))
 
     return graph
-
 
 '''
 Graph is checked to be valid based on our constraints

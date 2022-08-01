@@ -18,34 +18,48 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     # set logging for the simulation
     setLoggingLevel(logFilePath, batch, nameOfTest, args.algorithm)
 
+    # Make sure the root is the right type
+    root = sanatizeRootType(args.root)
+
     ## Run the specified algorithm
     # Rapid Spanning Tree Algorithm
     if(args.algorithm == "rsta"):
-        RSTA.init(G=graph, r=args.root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+        RSTA.init(G=graph, r=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
     # Meshed Tree Algorithm - N-Paths
     elif(args.algorithm == "npaths"):
         # If a valid edge is to be removed, it will be included in the analysis
-        MTP_NPaths.init(Graph=graph, root=args.root, logFilePath=logFilePath, remedyPaths=args.remedy, m=args.backups, batch=batch, removal=removedEdge(graph, args.remove), testName=nameOfTest)
+        MTP_NPaths.init(Graph=graph, root=root, logFilePath=logFilePath, remedyPaths=args.remedy, m=args.backups, batch=batch, removal=removedEdge(graph, args.remove), testName=nameOfTest)
 
     # Meshed Tree Algorithm - N-Paths - BFS
     elif(args.algorithm == "bfs"):
         setLoggingLevel(logFilePath, batch, nameOfTest, args.algorithm)
-        setVertexLabels(graph, args.root)
-        MTP_NPaths_BFS.init(Graph=graph, root=args.root, m=args.backups)
+        setVertexLabels(graph, root)
+        MTP_NPaths_BFS.init(Graph=graph, root=root, m=args.backups)
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.algorithm == "mta"):
-        MTA_RP.init(Graph=graph, root=args.root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+        MTA_RP.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
     # Dijkstra's Algorithm
     elif(args.algorithm == "da"):
-        DA.init(Graph=graph, root=args.root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+        DA.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
     else:
         raise nx.NetworkXError("Graph type is not valid")
 
     return
+
+'''
+Determine if the root identifier type is an int or string
+'''
+def sanatizeRootType(root):
+    if(isinstance(root, int)):
+        return root
+    if(root.isdigit()):
+        return int(root)
+    else:
+        return root
 
 '''
 Determine if an edge exists to remove

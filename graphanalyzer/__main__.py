@@ -59,6 +59,10 @@ def main():
         if(args.picture):
             FigureGenerator.drawGraph(graph, getFile(programConfig["results"]["figure"], nameOfTest + ".png"))
 
+        # Option if you want to save a graphml of the graph, which will be placed in the graph folder
+        if(args.save):
+            GraphGenerator.toGraphml(graph, getFile(programConfig["graphs"], nameOfTest + ".graphml"))
+
         if(args.algorithm != "none"):
             # Run one of the algorithms for initial SPT convergence and potential further tests
             Algorithms.runAlgorithmOnGraph(graph, args, programConfig["results"]["log"], nameOfTest)
