@@ -45,6 +45,7 @@ def main():
     typeOfTest = graphConfig["type"]
     typeOfGraph = graphConfig["choice"]
     nameOfTest = graphConfig["name"]
+    testSeed = graphConfig["seed"]
 
     if(typeOfTest == None or typeOfGraph == None):
         print("ERROR: type and/or choice JSON object has a null value")
@@ -52,7 +53,7 @@ def main():
 
     # Generate a single graph of the given type
     if(typeOfTest == "single"):
-        graph = GraphGenerator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], programConfig["graphs"])
+        graph = GraphGenerator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], seed=testSeed, graphDirectory=programConfig["graphs"])
 
         # Option if you want to see a picture of the graph (Graphviz-generated)
         if(args.picture):

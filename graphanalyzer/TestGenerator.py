@@ -38,7 +38,6 @@ def runBinomialScaleVerticesTest(testConfig, algoConfig, logFilePath, nameOfTest
 
     return
 
-
 def runKRegularScaleEdgesTest(testConfig, algoConfig, logFilePath, nameOfTest):
     typeOfGraph = "kRegular"
 

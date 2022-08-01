@@ -6,7 +6,7 @@ from os.path import join as getFile
 '''
 Generate a single graph to study
 '''
-def generateGraph(graphType, graphConfig, graphDirectory=None):
+def generateGraph(graphType, graphConfig, seed=None, graphDirectory=None):
     maxAttempts = 25
     currentAttempt = 0
 
@@ -17,19 +17,19 @@ def generateGraph(graphType, graphConfig, graphDirectory=None):
     else:
         while(currentAttempt != maxAttempts):
             if(graphType == "binomial"):
-                G = generateBinomialGraph(graphConfig["numberOfVertices"], graphConfig["edgeProbability"])
+                G = generateBinomialGraph(graphConfig["numberOfVertices"], graphConfig["edgeProbability"], inputSeed=seed)
             elif(graphType == "smallWorld"):
-                G = generateSmallWorldGraph(graphConfig["numberOfVertices"], graphConfig["connectedNearestNeighbors"], graphConfig["rewiringProbability"])
+                G = generateSmallWorldGraph(graphConfig["numberOfVertices"], graphConfig["connectedNearestNeighbors"], graphConfig["rewiringProbability"], inputSeed=seed)
             elif(graphType == "harary"):
-                G = generateHararyGraph(graphConfig["nodeConnectivity"], graphConfig["numberOfVertices"])
+                G = generateHararyGraph(graphConfig["nodeConnectivity"], graphConfig["numberOfVertices"], inputSeed=seed)
             elif(graphType == "kRegular"):
-                G = generateRegularGraph(graphConfig["sharedDegree"], graphConfig["numberOfVertices"])
+                G = generateRegularGraph(graphConfig["sharedDegree"], graphConfig["numberOfVertices"], inputSeed=seed)
             elif(graphType == "torus"):
                 G = generateTorusGraph(graphConfig["rowsOfVertices"], graphConfig["columnsOfVertices"])
             elif(graphType == "ring"):
                 G = generateRingGraph(graphConfig["numberOfVertices"])
             elif(graphType == "internet"):
-                G = generateInternetGraph(graphConfig["numberOfVertices"])
+                G = generateInternetGraph(graphConfig["numberOfVertices"], inputSeed=seed)
             elif(graphType == "foldedClos"):
                 G = generateFoldedClosGraph(graphConfig["sharedDegree"], graphConfig["numberOfTiers"])
             else:
