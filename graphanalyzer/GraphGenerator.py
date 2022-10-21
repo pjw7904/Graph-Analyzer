@@ -3,17 +3,22 @@ import sys
 import networkx as nx
 from os.path import join as getFile
 
+import Clos
+
+
 '''
 Generate a single graph to study
 '''
-def generateGraph(graphType, graphConfig, seed=None, graphDirectory=None):
+def generateGraph(graphType, graphConfig, seed=None, graphDirectory=None, logDirectory=None):
     maxAttempts = 25
     currentAttempt = 0
 
     if(graphType == "graphml"):
         return fromGraphml(getFile(graphDirectory, graphConfig["fileName"]))
     elif(graphType == "leg"):
-        return generateRingLegs() # graphConfig["legLength"]
+        return generateRingLegs()
+    elif(graphType == "foldedClos"):
+        return generateFoldedClosGraph(graphConfig["sharedDegree"], graphConfig["numberOfTiers"], graphConfig, logDirectory)
     else:
         while(currentAttempt != maxAttempts):
             if(graphType == "binomial"):
@@ -30,8 +35,6 @@ def generateGraph(graphType, graphConfig, seed=None, graphDirectory=None):
                 G = generateRingGraph(graphConfig["numberOfVertices"])
             elif(graphType == "internet"):
                 G = generateInternetGraph(graphConfig["numberOfVertices"], inputSeed=seed)
-            elif(graphType == "foldedClos"):
-                G = generateFoldedClosGraph(graphConfig["sharedDegree"], graphConfig["numberOfTiers"])
             else:
                 raise nx.NetworkXError("Graph type is not valid")
             
@@ -122,65 +125,18 @@ def generateInternetGraph(n, inputSeed=None):
     return nx.random_internet_as_graph(n, seed=inputSeed)
 
 '''
-Folded-Clos/Fat-Tree Graph
+Folded-Clos/Fat-Tree Graph (built via BFS)
 k = Degree shared by each node
 l = Number of tiers in the graph
 '''
-def generateFoldedClosGraph(k, l):
-    def generatePod(G, tier, k, podPrefix="", numNodesAbove=0, topTier=False):
-        if(topTier):
-            for podNum in range(1, k+1):
-                podPrefix = "P{}".format(podNum)
-                generatePod(G, tier-1, k, numNodesAbove=int(numNodesAbove/int(k/2)), podPrefix=podPrefix) 
-                
-                # for each super spine node
-                for spine in range(1, int(numNodesAbove/int(k/2))+1):
-                    spineNode = podPrefix + "_S{spineNum}".format(spineNum=spine)
-                    # for each edge to a super spine node, step every other (2)
-                    for port in range(0,int((k/2))):
-                        superSpineNode = "TS{spineNum}".format(spineNum=spine+(int(numNodesAbove/int(k/2)*port)))
-                        G.add_edge(spineNode, superSpineNode)
+def generateFoldedClosGraph(k, t, options, logDirectory):
+    return Clos.folded_clos_graph(k, t, options, logDirectory)
 
-        # At tier one (leaf nodes), half of your ports (k/2) go to servers, the other half go to spines
-        elif(tier == 1):
-            # for each leaf node
-            for leaf in range(1, int((k/2)+1)):
-                leafNode = podPrefix + "_L{leafNum}".format(leafNum=leaf)
-                # for each edge to a spine node
-                for port in range(1,int((k/2)+1)):
-                    spineNode = podPrefix + "_S{spineNum}".format(spineNum=port)
-                    G.add_edge(leafNode, spineNode)
-
-        # At tier one (first spines), 
-        elif(tier == 2):
-            for podNum in range(1, int((k/2)+1)):
-                generatePod(G, tier-1, k, podPrefix)
-
-        else:   
-            for podNum in range(1, int((k/2)+1)):
-                prefix = podPrefix + "P" + str(podNum)
-                generatePod(G, tier-1, k, podPrefix=prefix, numNodesAbove=int(numNodesAbove/int(k/2)))
-
-                # for each super spine node
-                for spine in range(1, int(numNodesAbove/int(k/2))+1):
-                    spineNode = prefix + "_S{spineNum}".format(spineNum=spine)
-                    # for each edge to a super spine node, step every other (2)
-                    for port in range(0,int((k/2))):
-                        superSpineNode = podPrefix + "_S{spineNum}".format(spineNum=spine+(int(numNodesAbove/int(k/2)*port)))
-                        G.add_edge(spineNode, superSpineNode)
-        return
-
-    numTopTierSpineNodes = (k/2)**(l-1)
-
-    if(l < 2):
-        raise nx.NetworkXError("folded-Clos topologies cannot have the number of tiers < 2. The minimum is 2.")
-
-    G = nx.Graph()
-    generatePod(G, l, k, numNodesAbove=numTopTierSpineNodes, topTier=True)
-
-    return G
-
-def generateRingLegs():
+'''
+John test graph
+extra = the additional ring of nodes
+'''
+def generateRingLegs(extra=True):
     STANDARD_RING_LENGTH = 8
     graph = nx.Graph()
 
@@ -195,16 +151,13 @@ def generateRingLegs():
         graph.add_edge("L{}_RF".format(legNum), "L{}_RB1".format(legNum))
         
         while(currentLen != legLen+1):
-            # connect top and bottom
             graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_LB{}".format(legNum, currentLen))
             graph.add_edge("L{}_RT{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen))
 
-            # connect left and right
             graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_RT{}".format(legNum, currentLen))
             graph.add_edge("L{}_LB{}".format(legNum, currentLen), "L{}_RB{}".format(legNum, currentLen))
 
             if(currentLen != 1):
-                # connect to back
                 graph.add_edge("L{}_LT{}".format(legNum, currentLen), "L{}_LT{}".format(legNum, currentLen-1))
                 graph.add_edge("L{}_RT{}".format(legNum, currentLen), "L{}_RT{}".format(legNum, currentLen-1))
                 graph.add_edge("L{}_LB{}".format(legNum, currentLen), "L{}_LB{}".format(legNum, currentLen-1))
@@ -219,22 +172,49 @@ def generateRingLegs():
 
         return graph
 
-    # generate the ring
-    #ring = generateRingGraph(STANDARD_RING_LENGTH)
-
     # generate 4 legs with a given leg length
     for legNum in range(1,5):
         graph.add_edges_from(generateLeg(2, str(legNum)).edges)
     #graph.add_edges_from(ring.edges)
 
-    # attached the legs to the ring
-    for legNum in range(1,5):
-        graph.add_edge("L{}_LF".format(legNum), "L{}_RF".format(legNum))
+    if(extra):
+        ringNum = 1
+        for legNum in range(1,5):
+            graph.add_edge("L{}_LF".format(legNum), "R{}".format(ringNum))
+            graph.add_edge("L{}_RF".format(legNum), "R{}".format(ringNum))
+
+            if(legNum != 1):
+                graph.add_edge("L{}_LF".format(legNum), "R{}".format(ringNum-1))
+                graph.add_edge("L{}_RF".format(legNum), "R{}".format(ringNum+1))
+            else:
+                graph.add_edge("L{}_LF".format(legNum), "R{}".format(8))
+                graph.add_edge("L{}_RF".format(legNum), "R{}".format(ringNum+1))
         
-        if(legNum != 4):
-            graph.add_edge("L{}_RF".format(legNum), "L{}_LF".format(legNum+1))
-        else:
-            graph.add_edge("L{}_RF".format(legNum), "L{}_LF".format(1))
+            ringNum += 2
+
+        # inner rings
+        for i in range (1,9):
+            graph.add_edge("MT{}".format(i), "MB{}".format(i))
+
+            graph.add_edge("MT{}".format(i), "R{}".format(i))
+            graph.add_edge("MB{}".format(i), "R{}".format(i))
+
+            if(i != 8):
+                graph.add_edge("MT{}".format(i), "MT{}".format(i+1))
+                graph.add_edge("MB{}".format(i), "MB{}".format(i+1))
+            else:
+                graph.add_edge("MT{}".format(i), "MT{}".format(1))
+                graph.add_edge("MB{}".format(i), "MB{}".format(1))
+
+    else:
+        # attached the legs to the ring
+        for legNum in range(1,5):
+            graph.add_edge("L{}_LF".format(legNum), "L{}_RF".format(legNum))
+            
+            if(legNum != 4):
+                graph.add_edge("L{}_RF".format(legNum), "L{}_LF".format(legNum+1))
+            else:
+                graph.add_edge("L{}_RF".format(legNum), "L{}_LF".format(1))
 
     return graph
 

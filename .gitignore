@@ -179,7 +179,7 @@ Thumbs.db
 
 
 ### Project Directory Structure ###
-AnalysisScratchPad.txt
+notes/*
 SurvivalTest.py
 *.png
 creds.cnf

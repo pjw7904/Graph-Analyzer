@@ -53,7 +53,7 @@ def main():
 
     # Generate a single graph of the given type
     if(typeOfTest == "single"):
-        graph = GraphGenerator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], seed=testSeed, graphDirectory=programConfig["graphs"])
+        graph = GraphGenerator.generateGraph(typeOfGraph, graphConfig["single"][typeOfGraph], seed=testSeed, graphDirectory=programConfig["graphs"], logDirectory=programConfig["results"]["log"])
 
         # Option if you want to see a picture of the graph (Graphviz-generated)
         if(args.picture):

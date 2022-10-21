@@ -82,8 +82,11 @@ def setLoggingLevel(logFilePath, batch, testName, algoName):
     if(batch):
         logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
     else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName, algoName)), filemode='w', level=logging.WARNING)
-
+        #logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName, algoName)), filemode='w', level=logging.WARNING)
+        logging.basicConfig(handlers=[logging.FileHandler(filename=getFile(logFilePath, LOG_FILE.format(testName, algoName)), 
+                                                          encoding='utf-8', mode='w')],
+                                                          format='%(message)s',
+                                                          level=logging.WARNING)
     return
 
 '''
@@ -98,15 +101,20 @@ def setVertexLabels(Graph, root):
 
     for node in sorted(Graph.nodes):
         # Add a mapping in both directions, node --> ID (vertex-level) and ID --> node (graph-level)
-        Graph.nodes[node]['ID'] = chr(65 + IDCount)
+        Graph.nodes[node]['ID'] = chr(65 + IDCount) # 65 is the decimal value for the character 'A'
         Graph.graph['ID_to_vertex'][chr(65 + IDCount)] = node
-    
+
         if(node == root):
             logging.warning("Root node is {0}, ID = {1}\n".format(node, Graph.nodes[node]['ID']))
         else:
             logging.warning("Non-Root node {0}, ID = {1}\n".format(node, Graph.nodes[node]['ID']))
 
-        IDCount += 1
+        if(IDCount == 25): # jump to lowercase Latin alphabet
+            IDCount += 7
+        elif(IDCount == 57): # jump to additional letters beyond standard Latin alphabet 
+            IDCount = 192
+        else:
+            IDCount += 1
 
     logging.warning("---------\n\n")
 
