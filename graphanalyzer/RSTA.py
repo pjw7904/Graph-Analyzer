@@ -90,6 +90,9 @@ def init(G, r, logFilePath, batch=False, testName=None):
     #    formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n\tAV({BID}) = {AV}\n"
     #    logging.warning(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), AV=prettyVectorOutput(G,v, "AV")))
 
+    # step stuff
+    logging.warning("steps: {}".format(G.graph["step"]))
+
     # For batch testing
     logging.error("{0},{1},{2}".format(G.number_of_nodes(), G.number_of_edges(), G.graph["step"]))
 
@@ -122,6 +125,8 @@ def reconverge(G, r, brokenVertex1, brokenVertex2):
 
 def secondAttempt(G, root, sender):
     for receiver in G.neighbors(sender):
+        G.graph["step"] += 1 # For each neighbor that has received the updated information 
+
         # If the receiver is the root, skip, as the root won't have any changes
         if(receiver == root):
             continue
@@ -149,9 +154,13 @@ def secondAttempt(G, root, sender):
 
         # Define the new receiver vertex vector
         G.nodes[receiver]['VV'] = RSTAVector(G.nodes[receiver]['PV'].RPC+1, G.nodes[receiver]['BID'])
+
+        G.graph["step"] += 1 # For updating all vectors
 		
 		# temp fix?
         for i in range(1, len(update)):
+            G.graph["step"] += 1 # For having to check all of these updates
+
             if(update[i][1].RPC != float('inf') and firstVectorIsSuperior(update[i][1], G.nodes[receiver]['VV'])):
                 G.nodes[receiver]['AV'] = update[i][1]
                 AVFound = True

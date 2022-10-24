@@ -27,21 +27,19 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
     for vertex in Graph:
         if vertex != root: # 
             Graph.nodes[vertex]['pathBundle'] = []
-            Graph.nodes[vertex]['done'] = False
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
         # The root vertex is given a path bundle of itself, which is the only path it will contain
         else:
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
-            Graph.nodes[vertex]['done'] = True
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
         Graph.nodes[vertex]['updateCounter'] = 0 # Counts the number of times a node has to send an update to a neighbor
         Graph.nodes[vertex]['children'] = [] # mark children on the given node
         Graph.nodes[vertex]['parent'] = "None" # mark the parent of the given node (root will not have one) 
 
-    sendQueue = [root]
-    v = sendQueue[TOP_NODE] # v is the top node in the sending queue
+    sendQueue = []
+    v = root
     
     queueCounter = 0 # count the number of times the queue has popped an entry
 
@@ -59,6 +57,7 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
 
     logging.warning("\n=====RESULT=====\n" + resultOutput)
     logging.warning("\nTime to execute: {0}".format(endTime - startTime))
+    logging.warning("steps: {}".format(Graph.graph["step"]))
     Graph.graph["MTA_time"] = endTime - startTime
 
     # For batch testing - numVerts,numEdges,numSteps
@@ -81,7 +80,7 @@ def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
 
     # The downstream vertex attached to the removed edge is the first node to register the change
     sendQueue.append(brokenVertex2)
-    
+
     # Start elapsed time timer
     startTime = timer()
 
@@ -142,23 +141,22 @@ def send(v, Graph, root, sendQueue, queueCounter):
 
     # For each neighbor x of the vertex currently sending an update (vertex v), send them the path bundle
     for x in Graph.neighbors(v):
-        if Graph.nodes[x]['done'] == False:
-            # Update the log file about the neighbors current situation
-            logging.warning("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
-            logging.warning("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
+        # Update the log file about the neighbors current situation
+        logging.warning("NEIGHBOR: {0} ({1})\n".format(x, Graph.nodes[x]['ID']))
+        logging.warning("\tCurrent path bundle: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
-            # Delete any path that already contains the local label L(v) and append L(v) to the rest of them
-            pathsReceived = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
-            validPaths = list(dict.fromkeys(pathsReceived)) # remove duplicates
-            
-            Graph.graph["step"] += 1 # 12/8: validation is two steps for each path in path bundle
-            logging.warning("\t{0} Valid paths received: {1}\n".format(Graph.graph["step"], validPaths))
+        # Delete any path that already contains the local label L(v) and append L(v) to the rest of them
+        pathsReceived = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path]
+        validPaths = list(dict.fromkeys(pathsReceived)) # remove duplicates
+        
+        Graph.graph["step"] += 1 # 12/8: validation is two steps for each path in path bundle
+        logging.warning("\t{0} Valid paths received: {1}\n".format(Graph.graph["step"], validPaths))
 
-            # The receiving node now processes the valid paths in the bundle it has collected
-            isChild = processBundle(x, v, Graph, validPaths, sendQueue)
+        # The receiving node now processes the valid paths in the bundle it has collected
+        isChild = processBundle(x, v, Graph, validPaths, sendQueue)
 
-            if(isChild and x not in Graph.nodes[v]['children']):
-                Graph.nodes[v]['children'].append(x)
+        if(isChild and x not in Graph.nodes[v]['children']):
+            Graph.nodes[v]['children'].append(x)
 
     # Dequeue v from the send queue and then check to see if there is another node to send data
     s = sendQueue.pop(TOP_NODE)
@@ -173,7 +171,6 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
 
     # Form a great bundle B(v) by merging the path bundle with the paths from the calling vertex
     greatBundle = list(merge(Graph.nodes[x]['pathBundle'], validPaths, key=lambda x: (len(x), x)))
-
     Graph.graph["step"] += 1
     logging.warning("\t{0} Great bundle post-merge: {1}\n".format(Graph.graph["step"], greatBundle))
 
@@ -216,9 +213,6 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
 
             Graph.graph["step"] += 1
             logging.warning("\t{0} Updated S for remaining edges in need of a remedy: {1}\n".format(Graph.graph["step"], S))
-
-    if not S:
-        Graph.nodes[x]['done'] = True
 
     # If the new path bundle is different from the previous one, then the vertex must announce the new path bundle to neighbors
     if Graph.nodes[x]['newPathBundle'] != Graph.nodes[x]['pathBundle']:
