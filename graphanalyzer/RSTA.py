@@ -58,7 +58,7 @@ Input:  Graph G, root node r
 Output: Parent structure, which will create a shortest path tree
 '''
 def init(G, r, logFilePath, batch=False, testName=None):
-    setLoggingLevel(logFilePath, batch, testName)
+    #setLoggingLevel(logFilePath, batch, testName)
     setBIDs(G, r)
     G.graph["step"] = 0
 

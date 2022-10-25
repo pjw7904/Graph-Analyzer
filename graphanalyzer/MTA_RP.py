@@ -19,7 +19,7 @@ LOG_FILE_BATCH = "{}batch_test.csv"
 
 def init(Graph, root, logFilePath, batch=False, testName=None):
     # Startup tasks
-    setLoggingLevel(logFilePath, batch, testName)
+    #setLoggingLevel(logFilePath, batch, testName)
     defineMetrics(Graph)
     setVertexLabels(Graph, root)
 

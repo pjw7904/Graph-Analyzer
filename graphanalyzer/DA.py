@@ -16,7 +16,7 @@ LOG_FILE = "{}DA_Output.log"
 LOG_FILE_BATCH = "{}batch_test.csv"
 
 def init(Graph, root, logFilePath, batch=False, testName=None):
-    setLoggingLevel(logFilePath, batch, testName)
+    #setLoggingLevel(logFilePath, batch, testName)
 
     Graph.graph["DA"] = 0 # count number of iterations needed
     Graph.graph["DA_recv"] = 0

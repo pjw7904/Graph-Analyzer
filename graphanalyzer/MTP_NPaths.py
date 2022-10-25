@@ -61,7 +61,7 @@ removal = If an edge is to be removed after the init convergence, to study how t
 '''
 def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=None, testName=None):
     # Determine amount of information added to log file
-    setLoggingLevel(logFilePath, batch, testName)
+    #setLoggingLevel(logFilePath, batch, testName)
 
     # Every vertex is given a single-character ID (starting with 'A')
     createMeshedTreeDatatStructures(Graph, root) 
