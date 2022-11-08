@@ -6,6 +6,13 @@ import GraphGenerator
 import Algorithms
 from FigureGenerator import plotAlgorithmSteps
 
+def run(graphConfig, programConfig, args):
+
+    # Add whatever you want here!
+
+    return
+
+
 def runBatchTest(testType, testConfig, algoConfig, logFilePath, figFilePath, nameOfTest):
     if(testType == "binomial_scale_vertices"):
         runBinomialScaleVerticesTest(testConfig, algoConfig, logFilePath, nameOfTest)

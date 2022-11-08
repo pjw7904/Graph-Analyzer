@@ -70,5 +70,8 @@ def main():
     elif(typeOfTest == "batch"):
         TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], programConfig["results"]["figure"], nameOfTest)
 
+    elif(typeOfTest == "test"):
+        TestGenerator.run(graphConfig , programConfig, args)
+
 if __name__ == "__main__":
     main()

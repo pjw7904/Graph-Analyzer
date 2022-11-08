@@ -4,6 +4,7 @@ import MTP_NPaths # MTA N-Path algorithm
 import MTP_NPaths_BFS # MTA N-Path BFS algorithm
 import RSTA # Rapid Spanning Tree algorithm
 import DA # Dijkstra's algorithm
+import YA # Yen's Algorithm
 import logging
 import networkx as nx
 from os.path import join as getFile
@@ -44,6 +45,9 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     # Dijkstra's Algorithm
     elif(args.algorithm == "da"):
         DA.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+
+    elif(args.algorithm == "ya"):
+        YA.init(baseGraph=graph, source=root, sink=args.target)
 
     else:
         raise nx.NetworkXError("Graph type is not valid")
