@@ -1,7 +1,9 @@
 import logging
 
-from collections import namedtuple
+from collections import namedtuple, Counter
+from queue import PriorityQueue
 from operator import itemgetter
+from copy import deepcopy
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
 
@@ -15,15 +17,22 @@ LOG_FILE_BATCH = "{}batch_test.csv"
 # Vector that is exchanged between vertices to determine tree structure
 RSTAVector = namedtuple("RSTA_Vector", "RPC BID")
 
+DESIGNATED_ROLE = "D"
+ROOT_ROLE = "R"
+ALTERNATE_ROLE = "A"
+
 # Sending Queue
 Q = []
 
+### OUTPUT / FORMATTING FUNCTIONS ###
 def setBIDs(Graph, root):
     IDCount = 0
+    Graph.graph['BID_to_vertex'] = {}
 
     for node in sorted(Graph.nodes):
         Graph.nodes[node]['BID'] = chr(65 + IDCount)
-    
+        Graph.graph['BID_to_vertex'][chr(65 + IDCount)] = node
+
         if(node == root):
             logging.warning("Root node is {0}, BID = {1}\n".format(node, Graph.nodes[node]['BID']))
         else:
@@ -48,6 +57,20 @@ def prettyEdgeRolesOutput(G, v):
 
     return output
 
+def verboseOutput(Graph):
+    for v in sorted(Graph.nodes):
+        logging.warning("{nodeName} ({BID}) - RPC: {RPC}".format(nodeName=v, BID=Graph.nodes[v]['BID'], RPC=Graph.nodes[v]['VV'].RPC))
+
+        for edge in Graph.edges([v]):
+            RPC = Graph.nodes[v]["RT"][(edge)][0].RPC
+            BID = Graph.nodes[v]["RT"][(edge)][0].BID
+            role = Graph.nodes[v]["RT"][(edge)][1]
+            logging.warning(f"{edge}: RPC: {RPC} | BID: {BID} | Role: {role}")
+
+        logging.warning("")
+
+    return
+
 '''
 Data:   RSTA Vector in the form {RPC, BID}, sending queue Q, 
         array of priority queues for each vertex alt, parent struture
@@ -57,7 +80,7 @@ Input:  Graph G, root node r
 
 Output: Parent structure, which will create a shortest path tree
 '''
-def init(G, r, logFilePath, batch=False, testName=None):
+def init(G, r, logFilePath, batch=False, testName=None, removal=None):
     #setLoggingLevel(logFilePath, batch, testName)
     setBIDs(G, r)
     G.graph["step"] = 0
@@ -65,36 +88,37 @@ def init(G, r, logFilePath, batch=False, testName=None):
     Q.append(r)
 
     for v in G:
-        G.nodes[v]['VV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
-        G.nodes[v]['PV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
-        G.nodes[v]['AV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
+        if(v == r):
+            G.nodes[r]['VV'] = RSTAVector(0, G.nodes[r]['BID'])
+        else:
+            G.nodes[v]['VV'] = RSTAVector(float('inf'), G.nodes[v]['BID'])
+        
         G.nodes[v]["RT"] = {}
+        G.nodes[v]["AVPQ"] = PriorityQueue() # PQ to keep track of AV order
+        G.nodes[v]["Delete"] = Counter() # Counter to allow for lazy deletions from PQ
+        G.nodes[v]['PV'] = None
 
-        for neighbor in G.neighbors(v):
-            G.nodes[v]["RT"][neighbor] = RSTAVector(float('inf'), G.nodes[v]['BID'])
-
-    G.nodes[r]['VV'] = RSTAVector(0, G.nodes[r]['BID'])
-    G.nodes[r]['PV'] = RSTAVector(0, G.nodes[r]['BID'])
-    G.nodes[r]['AV'] = RSTAVector(0, G.nodes[r]['BID'])
-
-    for neighbor in G.neighbors(r):
-        G.nodes[r]["RT"][neighbor] = RSTAVector(0, G.nodes[r]['BID'])
+        for localEdge in G.edges([v]):
+            if(v == r):
+                 G.nodes[r]["RT"][localEdge] = [RSTAVector(0, G.nodes[r]['BID']), "D"]
+            else:
+                G.nodes[v]["RT"][localEdge] = [RSTAVector(float('inf'), G.nodes[v]['BID']), "U"]
 
     s = Q.pop(TOP_NODE)
-    #sendVertexVector(G, r, s)
-	# G.nodes[receiver]['PV'] = G.nodes[receiver]["RT"][min(G.nodes[receiver]["RT"], key=G.nodes[receiver]["RT"].get)]
-    secondAttempt(G,r,s)
+    send(G,r,s)
 
-    vectorOutput(G)
-    #for v in G:
-    #    formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n\tAV({BID}) = {AV}\n"
-    #    logging.warning(formattedOutput.format(nodeName=v, BID=G.nodes[v]['BID'], VV=prettyVectorOutput(G,v,"VV"), PV=prettyVectorOutput(G,v,"PV"), AV=prettyVectorOutput(G,v, "AV")))
+    verboseOutput(G)
 
-    # step stuff
     logging.warning("steps: {}".format(G.graph["step"]))
 
     # For batch testing
     logging.error("{0},{1},{2}".format(G.number_of_nodes(), G.number_of_edges(), G.graph["step"]))
+
+    # If an edge is to be removed, run the reconvergence process
+    if(removal):
+        print(removal[0])
+        print(removal[1])
+        reconverge(G, r, removal[0], removal[1])
 
     return
 
@@ -102,168 +126,217 @@ def init(G, r, logFilePath, batch=False, testName=None):
 Input: Graph G (populated with RSTA Vector info), brokenVertex, brokenEdge
 '''
 def reconverge(G, r, brokenVertex1, brokenVertex2):
-    # First determine if the root port was broken.
-    if(isRoot(G, brokenVertex1, brokenVertex2)):
-        # Move to your alternate (if available, if not it's just inf) and reset everything
-        G.nodes[brokenVertex1]['PV'] = G.nodes[brokenVertex1]['AV']
-        G.nodes[brokenVertex1]['AV'] = RSTAVector(float('inf'), G.nodes[brokenVertex1]['BID'])
-        G.nodes[brokenVertex1]['VV'] = RSTAVector(G.nodes[brokenVertex1]['PV'].RPC+1, G.nodes[brokenVertex1]['BID'])
+    '''
+    There are two possibilities in a break, considering edge (X,Y) broke:
 
-        G.nodes[brokenVertex1]["RT"].pop(brokenVertex2)
+    1. Y is inferior (R), X is superior (D) [X_D--------R_Y]
+    2. Y is inferior (A), X is superior (D) [X_D--------A_Y]
+    '''
 
-        for neighbor in G.neighbors(brokenVertex1):
-            G.nodes[brokenVertex1]["RT"][neighbor] = RSTAVector(float('inf'), G.nodes[brokenVertex1]['BID'])
+    logging.warning("============RECONVERGE============\n")
 
-    # Start sending and reconverging
-    secondAttempt(G, r, brokenVertex1)
+    # Grab the information from the appropriate nodes based on the broken edge
+    affectedVertices = {
+                        brokenVertex1: G.nodes[brokenVertex1]["RT"][(brokenVertex1, brokenVertex2)],
+                        brokenVertex2: G.nodes[brokenVertex2]["RT"][(brokenVertex2, brokenVertex1)]
+                        }
 
-    logging.warning("============RECONVERGE============")
-    vectorOutput(G)
+    startingVertex = None
+
+    for vertex in affectedVertices:
+        # The root port is broken, move to an alternate port if possible
+        if(affectedVertices[vertex][1] == ROOT_ROLE):
+            startingVertex = vertex
+            getNewRootPort(G, vertex)
+
+        elif(affectedVertices[vertex][1] == ALTERNATE_ROLE):
+            G.nodes[vertex]["Delete"][affectedVertices[vertex][0]] += 1
+
+            logging.warning(f"{vertex} - Alternate port broken, no change.")
+
+        else:
+            logging.warning(f"{vertex} - Designated port broken, no change.")
+
+        affectedVertices[vertex][1] = "B"
+
+    logging.warning("")
+
+    # Remove the edge from the graph
+    if(G.has_edge(brokenVertex1, brokenVertex2)):
+        G.remove_edge(brokenVertex1, brokenVertex2)
+    else:
+        G.remove_edge(brokenVertex2, brokenVertex1)
+
+    # Start sending and reconverging, if necessary
+    if(startingVertex):
+        send(G, r, startingVertex)
+
+    verboseOutput(G)
 
     return
 
 
-def secondAttempt(G, root, sender):
+def send(G, root, sender):
+    logging.warning(f"\n-------------------{sender} sending [{G.nodes[sender]['VV']}]-------------------")
+
     for receiver in G.neighbors(sender):
+        logging.warning(f"\n+++++++++++{receiver} receiving [{G.nodes[receiver]['VV']}]+++++++++++")
         G.graph["step"] += 1 # For each neighbor that has received the updated information 
 
         # If the receiver is the root, skip, as the root won't have any changes
         if(receiver == root):
+            logging.warning("I am root, ignore.")
             continue
 
         # Make a copy of the receivers current parent vector, note that it hasn't been updated yet (may not be updated)
-        updatedPV = False
-        updatedAV = False
-        AVFound = False
+        updated = False
+        receiverOldPV = deepcopy(G.nodes[receiver]['PV']) # PV = Parent Vector
+        receivedOldTV = deepcopy(G.nodes[receiver]['RT'][(receiver, sender)]) # TV = Table Vector
 
-        receiver_old_PV = G.nodes[receiver]['PV']
-        receiver_old_AV = G.nodes[receiver]['AV']
-
+        # "Receive" the vector on the neighbor and update the weight +1 for the edge it traveled over
+        receivedVector = RSTAVector(G.nodes[sender]['VV'].RPC + 1, G.nodes[sender]['VV'].BID)
+        
         # Update table with what you've received [VV from sender is noted]
-        G.nodes[receiver]["RT"][sender] = G.nodes[sender]['VV']
+        G.nodes[receiver]["RT"][(receiver, sender)][0] = receivedVector
 
-        # Update receiver vectors by determining the best and second best vector received (second best most likely not to be used)
-        update = sorted(G.nodes[receiver]["RT"].items(), key=itemgetter(1))
-		
-		# Updated PV to the best sent VV
-        G.nodes[receiver]['PV'] = update[0][1]
-		
-		# if that PV is not the same as the old PV, note the update
-        if(receiver_old_PV != G.nodes[receiver]['PV']):
-            updatedPV = True
-
-        # Define the new receiver vertex vector
-        G.nodes[receiver]['VV'] = RSTAVector(G.nodes[receiver]['PV'].RPC+1, G.nodes[receiver]['BID'])
-
-        G.graph["step"] += 1 # For updating all vectors
-		
-		# temp fix?
-        for i in range(1, len(update)):
-            G.graph["step"] += 1 # For having to check all of these updates
-
-            if(update[i][1].RPC != float('inf') and firstVectorIsSuperior(update[i][1], G.nodes[receiver]['VV'])):
-                G.nodes[receiver]['AV'] = update[i][1]
-                AVFound = True
-                break
+        # If the device has already seen this before, don't do anything
+        if(receivedVector == receivedOldTV[0]):
+            logging.warning("VV hasn't been updated, ignore.")
+            continue
         
-        if(not AVFound):
-            G.nodes[receiver]['AV'] = RSTAVector(float('inf'), G.nodes[receiver]['BID'])
+        # If there is a situation where there is no parent
+        elif(receiverOldPV is None):
+            logging.warning("No current root, sender is the new root by default.")
 
-        if(receiver_old_AV != G.nodes[receiver]['AV']):
-            updatedAV = True
+            # Update parent and vertex vectors
+            G.nodes[receiver]['PV'] = (receiver, sender)
+            G.nodes[receiver]['VV'] = RSTAVector(receivedVector.RPC, G.nodes[receiver]['BID'])
 
-        if(updatedPV or updatedAV):
+            # If this was previously an alternate port, it needs to be removed from the priority queue lazily
+            if(G.nodes[receiver]["RT"][(receiver, sender)][1] == ALTERNATE_ROLE):
+                G.nodes[receiver]["Delete"][receivedOldTV[0]] += 1
+                logging.warning("Interface was set to alternate prior, mark for removal.")
+
+            # Update table vector
+            G.nodes[receiver]["RT"][(receiver, sender)][1] = ROOT_ROLE
+
+            logging.warning(f"PV ---> {G.nodes[receiver]['PV']}")
+            logging.warning(f"VV ---> {G.nodes[receiver]['VV']}")
+            logging.warning(f"{receiver, sender} Role ---> {ROOT_ROLE}")
+
+        # If the received vector is the best vector heard from all neighbors
+        elif(receivedVector < G.nodes[receiver]["RT"][receiverOldPV][0]):
+            logging.warning("Sender beats current PV, new root.")
+
+            # Update parent and vertex vectors
+            G.nodes[receiver]['PV'] = (receiver, sender)
+            G.nodes[receiver]['VV'] = RSTAVector(receivedVector.RPC, G.nodes[receiver]['BID'])
+
+            # If this was previously an alternate port, it needs to be removed from the priority queue lazily
+            if(G.nodes[receiver]["RT"][(receiver, sender)][1] == ALTERNATE_ROLE):
+                G.nodes[receiver]["Delete"][receivedOldTV[0]] += 1
+                logging.warning("Interface was set to alternate prior, mark for removal.")
+
+            # Update table vector
+            G.nodes[receiver]["RT"][(receiver, sender)][1] = ROOT_ROLE
+
+            logging.warning(f"PV ---> {G.nodes[receiver]['PV']}")
+            logging.warning(f"VV ---> {G.nodes[receiver]['VV']}")
+            logging.warning(f"{(receiver, sender)} Role ---> {ROOT_ROLE}")
+
+            # The old root port needs to be updated to an alternate port, if applicable
+            G.nodes[receiver]["RT"][receiverOldPV][1] = ALTERNATE_ROLE
+            G.nodes[receiver]["AVPQ"].put(G.nodes[receiver]["RT"][receiverOldPV][0])
+
+            logging.warning(f"{receiverOldPV} Role ---> {ALTERNATE_ROLE}")
+            logging.warning(f"{receiverOldPV} put into AVPQ")
+
+        # If the receiver has the better vector on the link
+        elif(G.nodes[receiver]['VV'] < G.nodes[sender]['VV']):
+            logging.warning("Sender has an inferior VV.")
+
+            # If this was previously an alternate port, it needs to be removed from the priority queue lazily
+            if(G.nodes[receiver]["RT"][(receiver, sender)][1] == ALTERNATE_ROLE):
+                G.nodes[receiver]["Delete"][receivedOldTV[0]] += 1
+                logging.warning("Interface was set to alternate prior, mark for removal.")
+            # If this was previously a root port, a new root port must be found or reset
+            elif(G.nodes[receiver]["RT"][(receiver, sender)][1] == ROOT_ROLE):
+                getNewRootPort(G, receiver)    
+
+            # Update table vector
+            G.nodes[receiver]["RT"][(receiver, sender)][1] = DESIGNATED_ROLE 
+
+            logging.warning(f"{(receiver, sender)} Role ---> {DESIGNATED_ROLE}")               
+
+        # If it is the alternate port on the link
+        else:
+            logging.warning("Sender has the superior VV.")
+            # If the link was already alternate, but now has an updated value, remove the old entry from the PQ
+            if((receivedOldTV[1] == ALTERNATE_ROLE) and (receivedOldTV[0] != G.nodes[receiver]["RT"][(receiver, sender)][0])):
+                G.nodes[receiver]["Delete"][receivedOldTV[0]] += 1
+                logging.warning("Interface was already set to alternate prior, mark old vector for removal.")
+            else:
+                G.nodes[receiver]["RT"][(receiver, sender)][1] = ALTERNATE_ROLE
+                logging.warning(f"{(receiver, sender)} Role ---> {ALTERNATE_ROLE}")   
+            
+            G.nodes[receiver]["AVPQ"].put(receivedVector)
+            logging.warning(f"{receiverOldPV} put into AVPQ")
+
+        # Note the change that needs to be propagated
+        updated = True
+
+        if(updated):
             Q.append(receiver)
+            logging.warning("Added to the send queue.")
 
     if(Q):
         s = Q.pop(TOP_NODE)
-        secondAttempt(G, root, s)
+        send(G, root, s)
 
     return
 
-'''
-Input: vertex s, the vertex sending its vector to neighbors
-'''
-def sendVertexVector(G, r, s):
-    # s = sender, x = receiver
-    for x in G.neighbors(s):
-        updatedVector = False
 
-        VV_s_prime = RSTAVector(G.nodes[s]['VV'].RPC + 1, G.nodes[s]['BID'])
-        VV_x_prime = RSTAVector(G.nodes[x]['VV'].RPC + 1, G.nodes[x]['BID'])
-        G.graph["step"] += 2
+### RSTA ADDITIONAL FUNCTIONS ###
+def resetTable(G, vertex):
+    for localEdge in G.edges([vertex]):
+        G.nodes[vertex]["RT"][localEdge] = [RSTAVector(float('inf'), G.nodes[vertex]['BID']), "U"]    
 
-        if(isWeakenedParent(VV_s_prime, G.nodes[x]['PV']) and firstVectorIsSuperior(G.nodes[x]['AV'], G.nodes[s]['VV'])):
-            G.nodes[x]['PV'] = G.nodes[x]['AV']
-            G.nodes[x]['AV'] = RSTAVector(float('inf'), G.nodes[x]['BID'])
+    return
 
-        elif(firstVectorIsSuperior(VV_s_prime, VV_x_prime)):
-            G.graph["step"] += 1
-            if(firstVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['PV'])):
-                G.graph["step"] += 1
-                updatedVector = True
+def getNewRootPort(G, vertex):
+    newRoot = getAlternatePort(G.nodes[vertex]["AVPQ"], G.nodes[vertex]["Delete"])
+
+    if(not newRoot):
+        G.nodes[vertex]['VV'] = RSTAVector(float('inf'), G.nodes[vertex]['BID'])
+        G.nodes[vertex]['PV'] = None
+        resetTable(G, vertex)
         
-                G.nodes[x]['PV'] = G.nodes[s]['VV']
-                G.nodes[x]['VV'] = RSTAVector(VV_s_prime.RPC, G.nodes[x]['BID'])
-                G.graph["step"] += 3
+        logging.warning(f"{vertex} - Root port lost, no Alternate to fall back on.")
 
-            # VV_s_prime.BID != G.nodes[x]['PV'].BID and
-            elif(firstVectorIsSuperior(G.nodes[s]['VV'], G.nodes[x]['AV'])):
-                G.graph["step"] += 2
-                G.nodes[x]['AV'] = G.nodes[s]['VV'] 
+    else:
+        rootPort = (vertex, G.graph['BID_to_vertex'][newRoot[1]])
 
-        elif(G.nodes[x]['AV'] == G.nodes[s]['VV']):
-            G.nodes[x]['AV'] = RSTAVector(float('inf'), G.nodes[x]['BID'])
+        G.nodes[vertex]['PV'] = rootPort
+        G.nodes[vertex]["RT"][rootPort][1] = ROOT_ROLE
+        G.nodes[vertex]['VV'] = RSTAVector(G.nodes[vertex]["RT"][rootPort][0].RPC, G.nodes[vertex]['BID'])
 
-        if(updatedVector):
-            Q.append(x)
-
-    if(Q):
-        s = Q.pop(TOP_NODE)
-        sendVertexVector(G, r, s)
+        logging.warning(f"{vertex} - Root port lost, new root port is {rootPort}.")
 
     return
 
-# Check the inputted vectors to see if the first is superior to the second
-def firstVectorIsSuperior(senderVector, receiverVector):
-    isSuperior = False
+def getAlternatePort(PQ, deleteDict):
+    # If there are no alternate ports, return as such
+    if(PQ.empty()):
+        return None
+    
+    # Find the best non-deleted alternate
+    while not PQ.empty():
+        alternate = PQ.get()
 
-    if(
-        (senderVector.RPC < receiverVector.RPC) or
-        (senderVector.RPC == receiverVector.RPC and senderVector.BID < receiverVector.BID)
-    ):
-        isSuperior = True
+        if(deleteDict[alternate] > 0):
+            deleteDict[alternate] -= 1
+        else:
+            return alternate
 
-    return isSuperior
-
-def vectorOutput(Graph):
-    for v in sorted(Graph.nodes):
-        formattedOutput = "{nodeName}\n\tVV({BID}) = {VV}\n\tPV({BID}) = {PV}\n\tAV({BID}) = {AV}\n"
-        logging.warning(formattedOutput.format(nodeName=v, BID=Graph.nodes[v]['BID'], VV=prettyVectorOutput(Graph, v,"VV"), PV=prettyVectorOutput(Graph, v, "PV"), AV=prettyVectorOutput(Graph, v, "AV")))
-
-    return
-
-def isRoot(G, vertex, potentialRoot):
-    if(G.nodes[vertex]['PV'].BID == G.nodes[potentialRoot]['BID']):
-        return True
-    else:
-        return False
-
-def isWeakenedParent(received, parent):
-    if((received.BID == parent.BID) and (received.RPC > parent.RPC+1)):
-        return True
-    else:
-        return False
-
-def setLoggingLevel(logFilePath, batch, testName):
-    if(testName):
-        testName = testName + "_"
-    else:
-        testName = ""
-
-    if(batch):
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
-    else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName)), filemode='w', level=logging.WARNING)
-
-    return
+    # If all alternate ports were marked for deletion, there are none and return as such
+    return None

@@ -25,7 +25,7 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     ## Run the specified algorithm
     # Rapid Spanning Tree Algorithm
     if(args.algorithm == "rsta"):
-        RSTA.init(G=graph, r=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+        RSTA.init(G=graph, r=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest, removal=removedEdge(graph, args.remove))
 
     # Meshed Tree Algorithm - N-Paths
     elif(args.algorithm == "npaths"):
@@ -34,7 +34,6 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
 
     # Meshed Tree Algorithm - N-Paths - BFS
     elif(args.algorithm == "bfs"):
-        setLoggingLevel(logFilePath, batch, nameOfTest, args.algorithm)
         setVertexLabels(graph, root)
         MTP_NPaths_BFS.init(Graph=graph, root=root, m=args.backups)
 
@@ -46,6 +45,7 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     elif(args.algorithm == "da"):
         DA.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
+    # Yen's Algorithm
     elif(args.algorithm == "ya"):
         YA.init(baseGraph=graph, source=root, sink=args.target)
 
