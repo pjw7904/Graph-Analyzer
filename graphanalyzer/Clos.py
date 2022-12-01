@@ -4,6 +4,7 @@ import random
 import re
 import networkx as nx
 from copy import deepcopy
+from collections import defaultdict
 
 '''
 In the context of vertices/interfaces/ports, there is an upper tier, "north", and a lower tier, "south"
@@ -48,7 +49,9 @@ def folded_clos_graph(k, t, options=None, logDirectory=None):
     # Log resulting graph if necessary
     logGraphInfo(graph, k, t, t)
 
-    testBlocking(graph, t)
+    # OTHER TESTS I'VE RUN
+    #testBlocking(graph, t)
+    #definePlanes(graph, t)
 
     return graph
 
@@ -217,9 +220,25 @@ def testBlocking(graph, topTier):
 
     return
 
+def definePlanes(graph, topTier):
+    planes = defaultdict(list)
+
+    for tier in range(topTier-1, 1, -1):
+        nodes = [v for v in graph if graph.nodes[v]["tier"] == tier]
+
+        for node in nodes:
+            planes[tuple(graph.nodes[node]["northbound"])].append(node)
+
+    for plane in planes:
+        nodes = planes[plane]
+        print(f"plane {plane}")
+        print(f"\t{nodes}")
+
+    return
+
 '''
 k = number of ports shared between all leaf and spine nodes (not compute)
-t = number of tiers in the 
+t = number of tiers in the topology
 
 Fat Tree is a TREE, thus we can traverse and build via a modified BFS
 '''
@@ -229,11 +248,10 @@ def buildGraph(k, t):
         raise nx.NetworkXError("Invalid Clos input (must be equal number of north and south links)")
 
     # Create base graph to add vertices and edges to
-    graph = nx.Graph()
+    graph = nx.Graph(topTier=t)
 
     currentTierPrefix = [""] # Queue for current prefix being connected to a southern prefix
     nextTierPrefix = [] # Queue for the prefixes of the tier directly south of the current tier
-
 
     currentPodNodes = (k//2)**(t-1) # Number of top-tier nodes
     topTier = t # The starting tier, and the highest tier in the topology
