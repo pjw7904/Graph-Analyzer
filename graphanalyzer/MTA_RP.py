@@ -17,15 +17,20 @@ TOP_NODE = 0
 LOG_FILE = "{}MTA_RP_Output.log"
 LOG_FILE_BATCH = "{}batch_test.csv"
 
+def defineMetrics(Graph):
+    Graph.graph["step"] = 0     # count the number of times a node processes ingress information
+    Graph.graph["MTA_time"] = 0 # Elasped algorithm simulation execution time
+
+    return
+
 def init(Graph, root, logFilePath, batch=False, testName=None):
     # Startup tasks
     #setLoggingLevel(logFilePath, batch, testName)
     defineMetrics(Graph)
-    setVertexLabels(Graph, root)
 
     # Non-root vertices are assigned an empty path bundle
     for vertex in Graph:
-        if vertex != root: # 
+        if vertex != root:
             Graph.nodes[vertex]['pathBundle'] = []
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
@@ -34,14 +39,15 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
-        Graph.nodes[vertex]['updateCounter'] = 0 # Counts the number of times a node has to send an update to a neighbor
         Graph.nodes[vertex]['children'] = [] # mark children on the given node
         Graph.nodes[vertex]['parent'] = "None" # mark the parent of the given node (root will not have one) 
 
+    # Get the send queue ready to go
     sendQueue = []
     v = root
     
-    queueCounter = 0 # count the number of times the queue has popped an entry
+    # Count the number of times the queue has popped an entry
+    queueCounter = 0
 
     # Start elapsed time timer
     startTime = timer()
@@ -52,7 +58,7 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
     # Stop elapsed time timer
     endTime = timer()
 
-    # Log the resulting path bundles from each node
+    # Single test result collection
     resultOutput = logPathBundles(Graph)
 
     logging.warning("\n=====RESULT=====\n" + resultOutput)
@@ -60,7 +66,7 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
     logging.warning("steps: {}".format(Graph.graph["step"]))
     Graph.graph["MTA_time"] = endTime - startTime
 
-    # For batch testing - numVerts,numEdges,numSteps
+    # Batch testing result collection
     logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
 
     return
@@ -134,7 +140,6 @@ def hasRemovedVIDs(Graph, vertex, edge):
 
 def send(v, Graph, root, sendQueue, queueCounter):
     # Update meta-information about algorithm sending queue
-    Graph.graph["MTA"] += 1
     queueCounter += 1
     logging.warning("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, sendQueue))
     logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n\n".format(v, Graph.nodes[v]['pathBundle']))
@@ -230,38 +235,11 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
             Graph.nodes[x]['parent'] = v
 
         logging.warning("\tOfficial new path bundle for node: {0}\n".format(Graph.nodes[x]['pathBundle']))
-        Graph.graph["MTA_recv"] += 1 # node received updated information that it used
 
         if(x not in sendQueue):
             sendQueue.append(x)
 
     return isChild
-
-def defineMetrics(Graph):
-    Graph.graph["MTA"] = 0      # count number of iterations needed
-    Graph.graph["MTA_recv"] = 0 # count number of times a node receives important information (don't consider)
-    Graph.graph["step"] = 0 # count the number of times a node processes ingress information
-    Graph.graph["MTA_time"] = 0 # Elasped algorithm simulation execution time
-
-    return
-
-def setVertexLabels(G, root):
-    IDCount = 0
-
-    for node in sorted(G.nodes):
-        G.nodes[node]['ID'] = chr(65 + IDCount)
-    
-        if(node == root):
-            logging.warning("Root node is {0}, ID = {1}".format(node, G.nodes[node]['ID']))
-
-        else:
-            logging.warning("Non-Root node {0}, ID = {1}".format(node, G.nodes[node]['ID']))
-
-        IDCount += 1
-
-    logging.warning("---------\n")
-
-    return
 
 def getPathEdgeSet(path):
     edgeSet = []
@@ -269,10 +247,8 @@ def getPathEdgeSet(path):
     if path:
         if len(path) <= 2:
             edgeSet = [path]
-
         else:
             vertexSet = list(path)
-
             for currentEdge in range(1,len(vertexSet)):
                 edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
 
@@ -300,33 +276,3 @@ def logPathBundles(Graph):
         resultOutput += "\n\t---\n"
 
     return resultOutput
-
-def validateInitConvergence(G, root):
-    for v in G:
-        if(v != root):
-            if(G.nodes[v]['parent'] == "None"):
-                return False
-            
-            parent = G.nodes[v]['parent']
-            if(v not in G.nodes[parent]["children"]):
-                return False
-
-
-        for child in G.nodes[v]['children']:
-            if(G.nodes[child]['parent'] != v):
-                return False
-
-    return True
-
-def setLoggingLevel(logFilePath, batch, testName):
-    if(testName):
-        testName = testName + "_"
-    else:
-        testName = ""
-
-    if(batch):
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE_BATCH.format(testName)), filemode='a', level=logging.ERROR) 
-    else:
-        logging.basicConfig(format='%(message)s', filename=getFile(logFilePath, LOG_FILE.format(testName)), filemode='w', level=logging.WARNING)
-
-    return

@@ -39,6 +39,7 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
 
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.algorithm == "mta"):
+        setVertexLabels(graph, root)
         MTA_RP.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
 
     # Dijkstra's Algorithm
@@ -120,6 +121,6 @@ def setVertexLabels(Graph, root):
         else:
             IDCount += 1
 
-    logging.warning("---------\n\n")
+    logging.warning("---------\n")
 
     return
