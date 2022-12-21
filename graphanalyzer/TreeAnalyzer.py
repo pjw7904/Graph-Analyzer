@@ -45,5 +45,11 @@ class TreeValidator:
     def relationshipStatus(self, vertex):
         return "Parent: {parent_vertex}\nChildren: {children_vertices}".format(parent_vertex=self.graph.nodes[vertex]['parent'], children_vertices=self.graph.nodes[vertex]['children'])
 
+    def getParent(self, vertex):
+        return self.graph.nodes[vertex]['parent']
+
+    def getChildren(self, vertex):
+        return self.graph.nodes[vertex]['children']
+
     def getStrandedVertices(self):
         return [vertex for vertex in self.graph.nodes if self.graph.nodes[vertex]['parent'] == None and vertex != self.root]

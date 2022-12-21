@@ -83,75 +83,15 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
     # Queue to determine who should be sending their bundle at a given discrete event
-    sendingQueue = [root] # The queue structure is a list
-
-    # Count the number of iterations needed to send all updates
-    queueCounter = 0
+    sendingQueue = [] # The queue structure is a list
 
     # The maximum number of paths is the number of remedy paths (m) + the one primary path
     maxPaths = m + 1
 
-    # Define function sending(v)
-    while sendingQueue:
-        # Update meta-information about algorithm sending queue
-        queueCounter += 1
-        logging.warning("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, sendingQueue))
-
-        # v is the top node in the sending queue, thus it is its turn to send its bundle
-        v = sendingQueue[TOP_NODE]
-        logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
-
-        # For each neighbor x of v
-        for x in Graph.neighbors(v):
-            logging.warning("NEIGHBOR: {0} ({1})".format(x, Graph.nodes[x]['ID']))
-            logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
-
-            # Append the ID of x to each of v's paths in its sent bundle if the path is not already in x's path bundle
-            validPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
-            Graph.graph["step"] += 1
-
-            # If there are paths left that survived the previous filter
-            if(validPaths):
-                logging.warning("\tNew path(s): {0}".format(validPaths))
-
-                Graph.nodes[x]['oldPathBundle'] = copy.deepcopy(Graph.nodes[x]['pathBundle'])
-
-                # Determine the algorithm to use to add paths to the path bundle
-                if(remedyPaths):
-                    addRemedyPaths(Graph, x, validPaths)
-                else:
-                    addAdditionalPaths(Graph, x, validPaths)
-
-                # If the maximum number of paths has been exceeded, remove the extras
-                if(len(Graph.nodes[x]['pathBundle']) > maxPaths):
-                    # Remove extra paths (keep only up to maxPaths)
-                    logging.warning("\tRemoved paths: {0}".format(Graph.nodes[x]['pathBundle'][maxPaths:]))
-                    del Graph.nodes[x]['pathBundle'][maxPaths:]
-                    Graph.graph["step"] += 1
-                    logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
-                
-                # If the maximum number of paths is hit exactly, just mark the 
-                elif(len(Graph.nodes[x]['pathBundle']) == maxPaths):
-                    logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
-
-                # If x is now a child of v, note that updated relationship
-                if(Graph.nodes[x]['pathBundle'][0][-2] == Graph.nodes[v]['ID']):
-                    treeValidator.addParent(v, x) # v is linked to x as a parent, x is linked to v as a child
-                
-                if Graph.nodes[x]['oldPathBundle'] != Graph.nodes[x]['pathBundle']:
-                    # Add x to the sending queue if not already in the queue (watch this for algorithm errors)
-                    if x not in sendingQueue:
-                        sendingQueue.append(x)
-                        logging.warning("\tNode appended to sending queue.")
-
-            else:
-                logging.warning("\tNo new paths, no changes.")
-
-        # Remove v from the sending queue now that we are done with each neighbor
-        sendingQueue.pop(TOP_NODE)
+    send(Graph, root, root, sendingQueue, remedyPaths, maxPaths, treeValidator)
 
     # Log the resulting path bundles, tree, and statistics if necessary
-    logging.warning("-----------\nFINAL RESULTS:\n")
+    logging.warning("-----------\nINIT RESULTS:\n")
     for vertex in sorted(Graph.nodes):
         logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
 
@@ -168,12 +108,8 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
 
     # If an edge is to be removed and the resulting tree studied
     if(removal):
-        removalResults = edgeRemoval(Graph, root, removal[0], removal[1], Vm, batch)
-        
-        # For batch testing removals
-        if(batch):
-            logging.error("{},{},{},{},{},{:.2f},{},{},{},{},{:.2f},{}"
-            .format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"], treeValidator.isTree(), len(Vm), (probOfSurvival*100), removal, removalResults[0], removalResults[1], removalResults[2], removalResults[3], removalResults[4]))
+        recoveryTreeValidator = failureRecovery(Graph, root, removal[0], removal[1])
+        failureReconvergence(Graph, root, recoveryTreeValidator, remedyPaths, maxPaths)
 
     # if an edge is not being removed, but batch testing is occurring for the initial result
     elif(batch):
@@ -182,6 +118,144 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
 
     # Return pertinent information, will change over time depending on the test 
     return Vm
+
+def send(Graph, v, root, sendingQueue, remedyPaths, maxPaths, treeValidator: TreeValidator):
+    logging.warning("-----------\nCURRENT QUEUE {0}".format(sendingQueue))
+    logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
+
+    # For each neighbor x of v
+    for x in Graph.neighbors(v):
+        logging.warning("NEIGHBOR: {0} ({1})".format(x, Graph.nodes[x]['ID']))
+        logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
+
+        # Append the ID of x to each of v's paths in its sent bundle if the path is not already in x's path bundle
+        validPaths = [path + Graph.nodes[x]['ID'] for path in Graph.nodes[v]['pathBundle'] if Graph.nodes[x]['ID'] not in path and path + Graph.nodes[x]['ID'] not in Graph.nodes[x]['pathBundle']]
+        Graph.graph["step"] += 1
+
+        # If there are paths left that survived the previous filter
+        if(validPaths):
+            logging.warning("\tNew path(s): {0}".format(validPaths))
+
+            Graph.nodes[x]['oldPathBundle'] = copy.deepcopy(Graph.nodes[x]['pathBundle'])
+
+            # Determine the algorithm to use to add paths to the path bundle
+            if(remedyPaths):
+                addRemedyPaths(Graph, x, validPaths)
+            else:
+                addAdditionalPaths(Graph, x, validPaths)
+
+            # If the maximum number of paths has been exceeded, remove the extras
+            if(len(Graph.nodes[x]['pathBundle']) > maxPaths):
+                # Remove extra paths (keep only up to maxPaths)
+                logging.warning("\tRemoved paths: {0}".format(Graph.nodes[x]['pathBundle'][maxPaths:]))
+                del Graph.nodes[x]['pathBundle'][maxPaths:]
+                Graph.graph["step"] += 1
+                logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
+            
+            # If the maximum number of paths is hit exactly, just note the resulting bundle
+            elif(len(Graph.nodes[x]['pathBundle']) == maxPaths):
+                logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
+
+            # If x is now a child of v, note that updated relationship
+            if(Graph.nodes[x]['pathBundle'][0][-2] == Graph.nodes[v]['ID']):
+                treeValidator.addParent(v, x) # v is linked to x as a parent, x is linked to v as a child
+            
+            if Graph.nodes[x]['oldPathBundle'] != Graph.nodes[x]['pathBundle']:
+                # Add x to the sending queue if not already in the queue (watch this for algorithm errors)
+                if x not in sendingQueue:
+                    sendingQueue.append(x)
+                    logging.warning("\tNode appended to sending queue.")
+
+        else:
+            logging.warning("\tNo new paths, no changes.")
+
+    # Remove v from the sending queue now that we are done with each neighbor
+    s = sendingQueue.pop(TOP_NODE)
+    if sendingQueue:
+        send(Graph, s, root, sendingQueue, remedyPaths, maxPaths, treeValidator)
+
+    return
+
+'''
+========================
+EDGE FAILURE FUNCTIONS
+========================
+'''
+def failureRecovery(Graph, root, brokenVertex1, brokenVertex2):
+    # Determine the failed path ID (and its reverse, you won't know if the user put in the correct order)
+    failedIDs = Graph.nodes[brokenVertex1]['ID'] + Graph.nodes[brokenVertex2]['ID']
+    failedEdge = (failedIDs, failedIDs[::-1])
+    print(failedEdge)
+
+    # Set up recovery steps by clearing the init step count
+    Graph.graph["step"] = 0
+
+    # Remove the edge from the graph
+    if(Graph.has_edge(brokenVertex1, brokenVertex2)):
+        Graph.remove_edge(brokenVertex1, brokenVertex2)
+    else:
+        Graph.remove_edge(brokenVertex2, brokenVertex1)
+
+    # Create a validation object to determine if the result is a tree
+    treeValidator = TreeValidator(Graph.nodes, root)
+
+    # Propogate the failure of the edge
+    Q = [brokenVertex1, brokenVertex2]
+    while Q:
+        v = Q.pop(0)
+        for x in Graph.neighbors(v):
+            # Add step for propogation
+            Graph.graph["step"] += 1
+
+            # Check if a path needs to be removed and do so
+            bundleSize = len(Graph.nodes[x]['pathBundle'])
+            Graph.graph["step"] += bundleSize
+            Graph.nodes[x]['pathBundle'] = removePaths(Graph, x, failedEdge)
+
+            # A path was removed
+            if(bundleSize > len(Graph.nodes[x]['pathBundle'])):
+                Q.append(x)
+
+            # If the vertex still has paths in its bundle, determine its new parent and mark that relationship
+            if(Graph.nodes[x]['pathBundle'] and x != root):
+                parentID = Graph.nodes[x]['pathBundle'][0][-2]
+                treeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], x)
+
+
+    # Log the resulting path bundles, tree, and statistics if necessary
+    logging.warning("-----------\nRECOVERY RESULTS:\n")
+    for vertex in sorted(Graph.nodes):
+        logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
+    
+    # Confirm that what is created is a tree
+    logging.warning("Results is a tree: {0}".format(treeValidator.isTree()))
+
+    return treeValidator
+
+def failureReconvergence(Graph, root, treeValidator: TreeValidator, remedyPaths, maxPaths):
+    # The ol' send queue, it needs to be the neighbors of the fallen brothers
+    sendingQueue = []
+
+    for vertex in treeValidator.getStrandedVertices():
+        for neighbor in Graph.neighbors(vertex):
+            sendingQueue.append(neighbor)
+
+    if(not sendingQueue):
+        logging.warning("-----------\nRECONVERGENCE RESULTS:\n")
+        logging.warning("No stranded vertices, no change to bundles.")
+        
+        return
+
+    else:
+        send(Graph, root, root, sendingQueue, remedyPaths, maxPaths, treeValidator)
+
+    logging.warning("-----------\nRECONVERGENCE RESULTS:\n")
+    for vertex in sorted(Graph.nodes):
+        logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
+
+    logging.warning("Results is a tree: {0}".format(treeValidator.isTree()))
+
+    return
 
 '''
 Analyzing how the resulting MTA N-Path bundles hold up to an edge being removed
@@ -322,6 +396,9 @@ def addRemedyPaths(Graph, vertex, validPaths):
             sendQueue.append(x)'''
 
     return
+
+def removePaths(Graph, vertex, failedEdge):
+    return [path for path in Graph.nodes[vertex]['pathBundle'] if not any(map(path.__contains__, failedEdge))]
 
 
 def getPathEdgeSet(path):
