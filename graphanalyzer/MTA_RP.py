@@ -7,6 +7,7 @@ MESHED TREE ALGORITHM - REMEDY PATHS
 from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
+from TreeAnalyzer import TreeValidator
 import logging
 import copy # Get the ability to perform a deep copy
 
@@ -27,6 +28,7 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
     # Startup tasks
     #setLoggingLevel(logFilePath, batch, testName)
     defineMetrics(Graph)
+    treeValidator = TreeValidator(Graph.nodes, root) 
 
     # Non-root vertices are assigned an empty path bundle
     for vertex in Graph:
@@ -37,10 +39,7 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
         # The root vertex is given a path bundle of itself, which is the only path it will contain
         else:
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
-            logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
-
-        Graph.nodes[vertex]['children'] = [] # mark children on the given node
-        Graph.nodes[vertex]['parent'] = "None" # mark the parent of the given node (root will not have one) 
+            logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle'])) 
 
     # Get the send queue ready to go
     sendQueue = []
@@ -53,13 +52,13 @@ def init(Graph, root, logFilePath, batch=False, testName=None):
     startTime = timer()
 
     # Simulate message passing to allow the distributed algorithm to run in a serial manner
-    send(v, Graph, root, sendQueue, queueCounter)
+    send(v, Graph, root, sendQueue, queueCounter, treeValidator)
 
     # Stop elapsed time timer
     endTime = timer()
 
     # Single test result collection
-    resultOutput = logPathBundles(Graph)
+    resultOutput = getMTAInfo(Graph, treeValidator)
 
     logging.warning("\n=====RESULT=====\n" + resultOutput)
     logging.warning("\nTime to execute: {0}".format(endTime - startTime))
@@ -100,7 +99,7 @@ def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
 
     endTime = timer()
 
-    resultOutput = logPathBundles(Graph)
+    resultOutput = getMTAInfo(Graph)
     logging.warning("{0}\n{1}".format("\n=====RESULT=====", resultOutput))
 
     logging.warning("\nTime to remove edge: {0}".format(format(endTime - startTime, '.8f')))
@@ -115,7 +114,7 @@ def MTA_reconverge(Graph, brokenVertex1, brokenVertex2):
     queueCounter = 0 # count the number of times the queue has popped an entry
     send(v, Graph, brokenVertex2, sendQueue, queueCounter)
 
-    resultOutput = logPathBundles(Graph)
+    resultOutput = getMTAInfo(Graph)
     logging.warning("{0}\n{1}".format("\n=====RESULT=====", resultOutput))
 
     return
@@ -138,7 +137,7 @@ def hasRemovedVIDs(Graph, vertex, edge):
 
     return VIDsRemoved
 
-def send(v, Graph, root, sendQueue, queueCounter):
+def send(v, Graph, root, sendQueue, queueCounter, treeValidator):
     # Update meta-information about algorithm sending queue
     queueCounter += 1
     logging.warning("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, sendQueue))
@@ -159,14 +158,13 @@ def send(v, Graph, root, sendQueue, queueCounter):
 
         # The receiving node now processes the valid paths in the bundle it has collected
         isChild = processBundle(x, v, Graph, validPaths, sendQueue)
-
-        if(isChild and x not in Graph.nodes[v]['children']):
-            Graph.nodes[v]['children'].append(x)
+        if(isChild):
+            treeValidator.addParent(v, x)
 
     # Dequeue v from the send queue and then check to see if there is another node to send data
     s = sendQueue.pop(TOP_NODE)
     if sendQueue:
-        send(s, Graph, root, sendQueue, queueCounter)
+        send(s, Graph, root, sendQueue, queueCounter, treeValidator)
 
     return
 
@@ -227,13 +225,6 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
         if(Graph.nodes[x]['pathBundle'][0][:-1] == Graph.nodes[v]['pathBundle'][0]):
             isChild = True
 
-            # Remove the old parent, if necessary
-            previousParent = Graph.nodes[x]['parent']
-            if(previousParent != "None" and previousParent != v):
-                Graph.nodes[previousParent]['children'].remove(x)
-
-            Graph.nodes[x]['parent'] = v
-
         logging.warning("\tOfficial new path bundle for node: {0}\n".format(Graph.nodes[x]['pathBundle']))
 
         if(x not in sendQueue):
@@ -254,7 +245,7 @@ def getPathEdgeSet(path):
 
     return edgeSet
 
-def logPathBundles(Graph):
+def getMTAInfo(Graph, treeValidator):
     resultOutput = ""
 
     # Log the resulting path bundles from each node
@@ -266,13 +257,15 @@ def logPathBundles(Graph):
             resultOutput += "\t{0}\n".format(path)
 
         resultOutput += "\t---\n\tchildren: "
-        if(Graph.nodes[node]['children']):
-            for child in Graph.nodes[node]['children']:
+
+        children = treeValidator.getChildren(node)
+        if(children):
+            for child in children:
                 resultOutput += "{0} ".format(child)
         else:
-            resultOutput += "NONE"
+            resultOutput += "None"
 
-        resultOutput += "\n\tparent: {0}".format(Graph.nodes[node]['parent'])
+        resultOutput += "\n\tparent: {0}".format(treeValidator.getParent(node))
         resultOutput += "\n\t---\n"
 
     return resultOutput
