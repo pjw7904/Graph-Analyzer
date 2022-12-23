@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 '''
 ===========================
 MESHED TREE ALGORITHM - BFS N-PATHS
@@ -7,7 +8,7 @@ MESHED TREE ALGORITHM - BFS N-PATHS
 import logging
 import MTP_NPaths
 from TreeAnalyzer import TreeValidator
-from networkx import single_source_shortest_path_length
+from networkx import single_source_shortest_path_length, is_k_regular
 
 #
 # Constants
@@ -22,46 +23,45 @@ def init(Graph, root, m=2, removal=None):
     for vertex in Graph:
         if vertex != root:
             Graph.nodes[vertex]['pathBundle'] = [] # The bundle structure is a list
-            Graph.nodes[vertex]['done'] = False # Fully populated bundle
             Graph.nodes[vertex]['visited'] = False
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
         else:
             # The root will add itself as the only path it will receive
             Graph.nodes[root]['pathBundle'] = [Graph.nodes[root]['ID']]
-            Graph.nodes[vertex]['done'] = True
             Graph.nodes[vertex]['visited'] = True
             logging.warning("{0} path bundle = {1}\n\n".format(vertex, Graph.nodes[vertex]['pathBundle']))
 
-    # Queue to determine who should be sending their bundle at a given discrete event
-    sendingQueue = [root]
+    # Determines if there are still nodes to send
+    stillActive = True
     # Count the number of iterations needed to send all updates
     queueCounter = 0
     # The maximum number of paths is the number of remedy paths (m) + the one primary path
     maxPaths = m + 1
-    # How to mark to go backwards back up towards the root
-    needsReverse = True
+    # flip at each depth, start with True for the root
+    reversed = True
 
-    while sendingQueue:
-        queueCounter += 1
-        logging.warning("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, sendingQueue))
+    # Lists to hold the vertices
+    currentDepthVertices = [root]
+    nextDepthVertices = []
 
-        v = sendingQueue.pop(TOP_NODE)
-        logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
+    while currentDepthVertices:
+        for v in currentDepthVertices:
+            queueCounter += 1
+            logging.warning("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(queueCounter, currentDepthVertices))
+            logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
+            
+            for neighbor in Graph.neighbors(v):
+                logging.warning("NEIGHBOR: {0} ({1})".format(neighbor, Graph.nodes[neighbor]['ID']))
+                logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[neighbor]['pathBundle']))
 
-        for neighbor in Graph.neighbors(v):
-            logging.warning("NEIGHBOR: {0} ({1})".format(neighbor, Graph.nodes[neighbor]['ID']))
-            logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[neighbor]['pathBundle']))
+                # Per BFS logic, mark the neighbor as visited if it has not already, add to queue
+                if(not Graph.nodes[neighbor]['visited']):
+                    Graph.nodes[neighbor]['visited'] = True
+                    nextDepthVertices.append(neighbor)
+                    logging.warning("\tVisited status: Marked as visited")
+                else:
+                    logging.warning("\tVisited status: Already visited")
 
-            # Per BFS logic, mark the neighbor as visited if it has not already, add to queue
-            if(not Graph.nodes[neighbor]['visited']):
-                Graph.nodes[neighbor]['visited'] = True
-                sendingQueue.append(neighbor)
-                logging.warning("\tVisited status: Marked as visited")
-            else:
-                logging.warning("\tVisited status: Already visited")
-
-            # If the neighbors bundle is not full
-            if(Graph.nodes[neighbor]['done'] == False):
                 # Append the ID of x to each of v's paths in its sent bundle if the path is not already in x's path bundle
                 validPaths = [
                                 path + Graph.nodes[neighbor]['ID'] 
@@ -79,12 +79,10 @@ def init(Graph, root, m=2, removal=None):
                     if(len(Graph.nodes[neighbor]['pathBundle']) > maxPaths):
                         logging.warning("\tRemoved paths: {0}".format(Graph.nodes[neighbor]['pathBundle'][maxPaths:]))
                         del Graph.nodes[neighbor]['pathBundle'][maxPaths:]
-                        Graph.nodes[neighbor]['done'] = True
                         logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[neighbor]['pathBundle']))
 
                     # If the maximum number of paths is hit exactly, note that the bundle is full
                     elif(len(Graph.nodes[neighbor]['pathBundle']) == maxPaths):
-                        Graph.nodes[neighbor]['done'] = True
                         logging.warning("\tUpdated path bundle: {0}".format(Graph.nodes[neighbor]['pathBundle']))
 
                     # If x is now a child of v, note that updated relationship
@@ -93,23 +91,16 @@ def init(Graph, root, m=2, removal=None):
                         treeValidator.addParent(v, neighbor)
                 else:
                     logging.warning("\tNo new paths, no changes.")
-            else:
-                logging.warning("\tMax path limit hit (or root), no changes.")
 
-        # if the queue is empty and we haven't gone back in reverse yet
-        if(not sendingQueue and needsReverse):
-            # mark this as complete, we are going in reverse now
-            needsReverse = False
-
-            # reset each visited status for every node
-            for vertex in Graph:
-                Graph.nodes[vertex]['visited'] = False
-
-            # append the final node of the BFS, this is the new starting point
-            sendingQueue.append(v)
-            Graph.nodes[v]['visited'] = True
-
+        if(not reversed):
+            currentDepthVertices.reverse()
+            reversed = True
             logging.warning("\n++++++ REVERSE ++++++\n")
+
+        else:
+            currentDepthVertices = copy.deepcopy(nextDepthVertices)
+            nextDepthVertices.clear()
+            reversed = False
 
     # Log the results of the process
     logResults(Graph, treeValidator)
