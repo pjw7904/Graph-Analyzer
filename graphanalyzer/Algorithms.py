@@ -40,7 +40,7 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     # Meshed Tree Algorithm - Remedy Paths 
     elif(args.algorithm == "mta"):
         setVertexLabels(graph, root)
-        MTA_RP.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+        MTA_RP.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, removal=removedEdge(graph, args.remove), testName=nameOfTest)
 
     # Dijkstra's Algorithm
     elif(args.algorithm == "da"):

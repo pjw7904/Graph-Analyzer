@@ -59,10 +59,8 @@ def prettyEdgeRolesOutput(G, v):
 
     return output
 
-def verboseOutput(Graph):
-    logging.warning("")
-    logging.warning("---------")
-    logging.warning("RESULTING ROLE TABLES:")
+def logRSTAInfo(Graph, treeValidator, title):
+    logging.warning(f"\n====={title}=====\n")
 
     for v in sorted(Graph.nodes):
         logging.warning("{nodeName} ({VID}) - RPC: {RPC}".format(nodeName=v, VID=Graph.nodes[v]['VID'], RPC=Graph.nodes[v]['VV'].RPC))
@@ -73,7 +71,11 @@ def verboseOutput(Graph):
             role = Graph.nodes[v]["RT"][(edge)][1]
             logging.warning(f"{edge}: RPC: {RPC} | VID: {VID} | Role: {role}")
 
+        logging.warning(treeValidator.relationshipStatus(v))
         logging.warning("")
+
+    logging.warning("steps: {}".format(Graph.graph["step"]))
+    logging.warning("Result is a tree: {0}".format(treeValidator.isTree()))
 
     return
 
@@ -115,14 +117,11 @@ def init(G, r, logFilePath, batch=False, testName=None, removal=None):
                 G.nodes[v]["RT"][localEdge] = [RSTAVector(float('inf'), G.nodes[v]['VID']), "U"]
 
     s = Q.pop(TOP_NODE)
-    send(G,r,s,treeValidator)
-
-    verboseOutput(G)
+    send(G, r, s, treeValidator)
+    logRSTAInfo(G, treeValidator, "INIT RESULTS")
 
     if(not treeValidator.isTree()):
         raise NetworkXError("RSTA graph did not converge.")
-
-    logging.warning("steps: {}".format(G.graph["step"]))
 
     # For batch testing
     logging.error("{0},{1},{2}".format(G.number_of_nodes(), G.number_of_edges(), G.graph["step"]))
@@ -131,23 +130,20 @@ def init(G, r, logFilePath, batch=False, testName=None, removal=None):
     if(removal):
         print(removal[0])
         print(removal[1])
-        reconverge(G, r, removal[0], removal[1])
+        failureReconvergence(G, r, removal[0], removal[1], treeValidator)
 
     return
 
 '''
 Input: Graph G (populated with RSTA Vector info), brokenVertex, brokenEdge
 '''
-def reconverge(G, r, brokenVertex1, brokenVertex2):
+def failureReconvergence(G, r, brokenVertex1, brokenVertex2, treeValidator):
     '''
     There are two possibilities in a break, considering edge (X,Y) broke:
 
     1. Y is inferior (R), X is superior (D) [X_D--------R_Y]
     2. Y is inferior (A), X is superior (D) [X_D--------A_Y]
     '''
-
-    logging.warning("============RECONVERGE============\n")
-
     # Grab the information from the appropriate nodes based on the broken edge
     affectedVertices = {
                         brokenVertex1: G.nodes[brokenVertex1]["RT"][(brokenVertex1, brokenVertex2)],
@@ -155,22 +151,19 @@ def reconverge(G, r, brokenVertex1, brokenVertex2):
                         }
 
     startingVertex = None
+    G.graph["step"] = 0 # Restart count
 
     for vertex in affectedVertices:
         # The root port is broken, move to an alternate port if possible
         if(affectedVertices[vertex][1] == ROOT_ROLE):
             startingVertex = vertex
-            getNewRootPort(G, vertex)
+            getNewRootPort(G, vertex, treeValidator)
 
         elif(affectedVertices[vertex][1] == ALTERNATE_ROLE):
             G.nodes[vertex]["Delete"][affectedVertices[vertex][0]] += 1
 
-            logging.warning(f"{vertex} - Alternate port broken, no change.")
-
-        else:
-            logging.warning(f"{vertex} - Designated port broken, no change.")
-
         affectedVertices[vertex][1] = "B"
+        G.graph["step"] += 1
 
     logging.warning("")
 
@@ -182,12 +175,13 @@ def reconverge(G, r, brokenVertex1, brokenVertex2):
 
     # Start sending and reconverging, if necessary
     if(startingVertex):
-        send(G, r, startingVertex)
-
-    verboseOutput(G)
+        send(G, r, startingVertex, treeValidator)
+        logRSTAInfo(G, treeValidator, "RECONVERGENCE RESULTS")
+    else:
+        logging.warning(f"\n=====RECONVERGENCE RESULTS=====\n")
+        logging.warning("Alternate/Designated port broken, no change.")
 
     return
-
 
 def send(G, root, sender, treeValidator):
     logging.warning(f"\n-------------------{sender} sending [{G.nodes[sender]['VV']}]-------------------")
@@ -280,7 +274,7 @@ def send(G, root, sender, treeValidator):
                 logging.warning("Interface was set to alternate prior, mark for removal.")
             # If this was previously a root port, a new root port must be found or reset
             elif(G.nodes[receiver]["RT"][(receiver, sender)][1] == ROOT_ROLE):
-                getNewRootPort(G, receiver)    
+                getNewRootPort(G, receiver, treeValidator)    
 
             # Update table vector
             G.nodes[receiver]["RT"][(receiver, sender)][1] = DESIGNATED_ROLE 
@@ -325,7 +319,7 @@ def resetTable(G, vertex):
 
     return
 
-def getNewRootPort(G, vertex):
+def getNewRootPort(G, vertex, treeValidator):
     newRoot = getAlternatePort(G.nodes[vertex]["AVPQ"], G.nodes[vertex]["Delete"])
 
     if(not newRoot):
@@ -333,16 +327,17 @@ def getNewRootPort(G, vertex):
         G.nodes[vertex]['PV'] = None
         resetTable(G, vertex)
         
-        logging.warning(f"{vertex} - Root port lost, no Alternate to fall back on.")
+        logging.warning(f"\n------------\n{vertex} - Root port lost, no Alternate to fall back on.\n------------\n")
 
     else:
         rootPort = (vertex, G.graph['VID_to_vertex'][newRoot[1]])
+        treeValidator.addParent(G.graph['VID_to_vertex'][newRoot[1]], vertex)
 
         G.nodes[vertex]['PV'] = rootPort
         G.nodes[vertex]["RT"][rootPort][1] = ROOT_ROLE
         G.nodes[vertex]['VV'] = RSTAVector(G.nodes[vertex]["RT"][rootPort][0].RPC, G.nodes[vertex]['VID'])
 
-        logging.warning(f"{vertex} - Root port lost, new root port is {rootPort}.")
+        logging.warning(f"\n------------\n{vertex} - Root port lost, new root port is {rootPort}.\n------------\n")
 
     return
 

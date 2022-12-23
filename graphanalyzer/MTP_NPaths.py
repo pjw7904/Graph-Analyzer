@@ -109,6 +109,15 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
     # If an edge is to be removed and the resulting tree studied
     if(removal):
         recoveryTreeValidator = failureRecovery(Graph, root, removal[0], removal[1])
+
+        # Log the resulting path bundles, tree, and statistics if necessary
+        logging.warning("-----------\nRECOVERY RESULTS:\n")
+        for vertex in sorted(Graph.nodes):
+            logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], recoveryTreeValidator.relationshipStatus(vertex)))
+    
+        # Confirm that what is created is a tree
+        logging.warning("Results is a tree: {0}".format(recoveryTreeValidator.isTree()))
+
         failureReconvergence(Graph, root, recoveryTreeValidator, remedyPaths, maxPaths)
 
     # if an edge is not being removed, but batch testing is occurring for the initial result
@@ -221,15 +230,6 @@ def failureRecovery(Graph, root, brokenVertex1, brokenVertex2):
                 parentID = Graph.nodes[x]['pathBundle'][0][-2]
                 treeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], x)
 
-
-    # Log the resulting path bundles, tree, and statistics if necessary
-    logging.warning("-----------\nRECOVERY RESULTS:\n")
-    for vertex in sorted(Graph.nodes):
-        logging.warning("\t{0} ({1})\npath bundle = {2}\n{3}\n".format(vertex, Graph.nodes[vertex]['ID'], Graph.nodes[vertex]['pathBundle'], treeValidator.relationshipStatus(vertex)))
-    
-    # Confirm that what is created is a tree
-    logging.warning("Results is a tree: {0}".format(treeValidator.isTree()))
-
     return treeValidator
 
 def failureReconvergence(Graph, root, treeValidator: TreeValidator, remedyPaths, maxPaths):
@@ -247,7 +247,8 @@ def failureReconvergence(Graph, root, treeValidator: TreeValidator, remedyPaths,
         return
 
     else:
-        send(Graph, root, root, sendingQueue, remedyPaths, maxPaths, treeValidator)
+        s = sendingQueue.pop(0)
+        send(Graph, s, root, sendingQueue, remedyPaths, maxPaths, treeValidator)
 
     logging.warning("-----------\nRECONVERGENCE RESULTS:\n")
     for vertex in sorted(Graph.nodes):
