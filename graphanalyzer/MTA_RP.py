@@ -8,7 +8,7 @@ from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
 from TreeAnalyzer import TreeValidator
-from MTP_NPaths import failureRecovery
+import MTP_NPaths
 import logging
 import copy # Get the ability to perform a deep copy
 
@@ -52,22 +52,26 @@ def init(Graph, root, logFilePath, batch=False, removal=None, testName=None):
 
     # Single test result collection
     logMTAInfo(Graph, treeValidator, "INIT RESULTS")
+    Graph.graph["tree"] = treeValidator.getGraph()
 
     # If an edge is to be removed and the resulting tree studied
     if(removal):
-        recoveryTreeValidator = failureRecovery(Graph, root, removal[0], removal[1])
-        logMTAInfo(Graph, recoveryTreeValidator, "RECOVERY RESULTS")
-
-        failureReconvergence(Graph, root, recoveryTreeValidator)
+        failureLimitedRecovery(Graph, root, removal[0], removal[1], treeValidator)
+        #recoveryTreeValidator = MTP_NPaths.failureRecovery(Graph, root, removal[0], removal[1])
+        #logMTAInfo(Graph, recoveryTreeValidator, "RECOVERY RESULTS")
+        #failureReconvergence(Graph, root, recoveryTreeValidator)
 
     elif(batch):
         # Batch testing result collection
         logging.error("{0},{1},{2}".format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"]))
 
+    else:
+        print("removal not done here")
+
     return
 
 
-def send(v, Graph, root, sendQueue, treeValidator):
+def send(v, Graph, root, sendQueue, treeValidator, setDestination=None):
     # Update meta-information about algorithm sending queue
     Graph.graph["queueCounter"] += 1
     logging.warning("-----------\nQUEUE ITERATION: {0}\nCURRENT QUEUE {1}\n".format(Graph.graph["queueCounter"], sendQueue))
@@ -75,6 +79,10 @@ def send(v, Graph, root, sendQueue, treeValidator):
 
     # For each neighbor x of the vertex currently sending an update (vertex v), send them the path bundle
     for x in Graph.neighbors(v):
+        # If only one node is being targeted, skip all other neighbors
+        if(setDestination and setDestination != x):
+            continue
+
         # Update the log file about the neighbors current situation
         logging.warning("NEIGHBOR: {0} ({1})".format(x, Graph.nodes[x]['ID']))
         logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
@@ -93,7 +101,7 @@ def send(v, Graph, root, sendQueue, treeValidator):
 
     # Dequeue v from the send queue and then check to see if there is another node to send data
     s = sendQueue.pop(TOP_NODE)
-    if sendQueue:
+    if sendQueue and not setDestination:
         send(s, Graph, root, sendQueue, treeValidator)
 
     return
@@ -161,6 +169,74 @@ def processBundle(x, v, Graph, validPaths, sendQueue):
             sendQueue.append(x)
 
     return isChild
+
+def failureLimitedRecovery(Graph, root, brokenVertex1, brokenVertex2, treeValidator: TreeValidator):
+    # Set up recovery steps by clearing the init step count
+    Graph.graph["step"] = 0
+    localSteps = 0
+
+    # Create a validation object to determine if the result is a tree
+    newTreeValidator = copy.deepcopy(treeValidator)
+
+    # Check lineage
+    if(treeValidator.isParent(brokenVertex1, brokenVertex2)):
+        failedEdge = Graph.nodes[brokenVertex2]['ID'] + Graph.nodes[brokenVertex1]['ID']
+        child = brokenVertex1
+    elif(treeValidator.isParent(brokenVertex2, brokenVertex1)):
+        failedEdge = Graph.nodes[brokenVertex1]['ID'] + Graph.nodes[brokenVertex2]['ID']
+        child = brokenVertex2
+    else:
+        localSteps += 1
+        logging.warning(f"\n=====RECOVERY RESULTS=====\n")
+        logging.warning("Tree not broken, no updates to primary paths.") 
+        return
+
+    # Remove the local root path from the child's bundle
+    Graph.nodes[child]['pathBundle'].pop(0)
+    localSteps += 1
+
+    # If there are still paths in the child's bundle
+    if Graph.nodes[child]['pathBundle']:
+        parentID = Graph.nodes[child]['pathBundle'][0][-2]
+        newTreeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], child)
+
+    # Purge the broken branch
+    Q = [child]
+    while Q:
+        vertex = Q.pop(0)
+        for child in treeValidator.getChildren(vertex):
+            currentBundleLen = len(Graph.nodes[child]['pathBundle'])
+            # Remove all paths that refer to the broken path and continue to traverse down the broken branch
+            Graph.nodes[child]['pathBundle'] = [path for path in Graph.nodes[child]['pathBundle'] if failedEdge not in path]
+            Q.append(child)
+            
+            bundleSizeDifference = currentBundleLen - len(Graph.nodes[child]['pathBundle'])
+            if(bundleSizeDifference < 2):
+                localSteps += 1
+            else:
+                localSteps += bundleSizeDifference
+
+            # If there are still paths in the bundle
+            if Graph.nodes[child]['pathBundle']:
+                parentID = Graph.nodes[child]['pathBundle'][0][-2]
+                newTreeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], child)
+            # If there are no longer paths in the bundle
+            else:
+                newTreeValidator.removeParent(child)
+    
+    Graph.graph["step"] = localSteps
+    logMTAInfo(Graph, newTreeValidator, "RECOVERY RESULTS")
+
+    # Fix stranded vertices by forcing them onto a new branch
+    for vertex in newTreeValidator.getStrandedVertices():
+        for neighbor in Graph.neighbors(vertex):
+            send(neighbor, Graph, root, [], newTreeValidator, setDestination=vertex)
+            localSteps += 1
+
+    Graph.graph["step"] = localSteps
+    logMTAInfo(Graph, newTreeValidator, "UPDATED RECOVERY RESULTS")
+
+    return
 
 def failureReconvergence(Graph, root, treeValidator: TreeValidator):
     # The ol' send queue, it needs to be the neighbors of the fallen brothers

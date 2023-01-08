@@ -1,14 +1,14 @@
 {
-    "type": "batch",
-    "choice": "kRegular_scale_edges",
-    "name": "something",
+    "type": "single",
+    "choice": "graphml",
+    "name": "17recov02",
     "seed": null,
 
     "single":
     {
         "graphml":
             {
-                "fileName": "5NodeThesis.graphml"
+                "fileName": "17NodeThesis.graphml"
             },
         "binomial":
             {
@@ -29,7 +29,7 @@
         "kRegular":
             {
                 "sharedDegree": 3,
-                "numberOfVertices": 20
+                "numberOfVertices": 6
             },
         "torus":
             {
@@ -46,8 +46,13 @@
             },
         "foldedClos":
             {
-                "sharedDegree": null,
-                "numberOfTiers": null
+                "sharedDegree": 4,
+                "numberOfTiers": 3,
+                "logging": true
+            },
+        "leg":
+            {
+                "legLength": 2
             }
     },
 

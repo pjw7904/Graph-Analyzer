@@ -128,9 +128,10 @@ def init(G, r, logFilePath, batch=False, testName=None, removal=None):
 
     # If an edge is to be removed, run the reconvergence process
     if(removal):
-        print(removal[0])
-        print(removal[1])
         failureReconvergence(G, r, removal[0], removal[1], treeValidator)
+
+    else:
+        print("removal not done here")
 
     return
 
@@ -289,21 +290,38 @@ def send(G, root, sender, treeValidator):
             # If the link was already alternate, but now has an updated value, remove the old entry from the PQ
             if((receivedOldTV[1] == ALTERNATE_ROLE) and (receivedOldTV[0] != G.nodes[receiver]["RT"][(receiver, sender)][0])):
                 G.nodes[receiver]["Delete"][receivedOldTV[0]] += 1
-                logging.warning("Interface was already set to alternate prior, mark old vector for removal.")
+                logging.warning("Interface was set to alternate prior, mark old vector for removal.")
+                G.nodes[receiver]["AVPQ"].put(receivedVector)
+                logging.warning(f"{receivedVector} put into AVPQ")  
+
+            # If the link was root, that means an updated value is inferior.
+            elif(receivedOldTV[1] == ROOT_ROLE):
+                G.nodes[receiver]["Delete"][receivedOldTV[0]] += 1
+                logging.warning("Interface was set to root prior, mark old vector for removal.")
+                G.nodes[receiver]["AVPQ"].put(receivedVector)
+                logging.warning(f"{receivedVector} put into AVPQ")
+                G.nodes[receiver]["RT"][(receiver, sender)][1] = ALTERNATE_ROLE
+                logging.warning(f"{(receiver, sender)} Role ---> {ALTERNATE_ROLE}") 
+                getNewRootPort(G, receiver, treeValidator)
+            
             else:
                 G.nodes[receiver]["RT"][(receiver, sender)][1] = ALTERNATE_ROLE
                 logging.warning(f"{(receiver, sender)} Role ---> {ALTERNATE_ROLE}")   
-            
-            G.nodes[receiver]["AVPQ"].put(receivedVector)
-            logging.warning(f"{receiverOldPV} put into AVPQ")
+                G.nodes[receiver]["AVPQ"].put(receivedVector)
+                logging.warning(f"{receivedVector} put into AVPQ")      
+
             G.graph["step"] += 1
 
         # Note the change that needs to be propagated
         updated = True
 
         if(updated):
-            Q.append(receiver)
-            logging.warning("Added to the send queue.")
+            if(receiver not in Q):
+                Q.append(receiver)
+                logging.warning("Added to the send queue.")
+            else:
+                logging.warning("Already in the send queue.")
+            logging.warning(Q)
 
     if(Q):
         s = Q.pop(TOP_NODE)

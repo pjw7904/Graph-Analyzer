@@ -27,6 +27,14 @@ class TreeValidator:
         self.addRelationship(parent, child)
         return
 
+    def removeParent(self, child):
+        # Determine who the child's previous parent is (or if they don't have one)
+        previousParent = self.graph.nodes[child]['parent']
+
+        if(previousParent != None):
+            self.removeRelationship(previousParent, child)
+        return
+
     def removeRelationship(self, parent, child):
         self.graph.nodes[parent]['children'].remove(child)
         self.graph.nodes[child]['parent'] = None
@@ -42,6 +50,12 @@ class TreeValidator:
     def isTree(self):
         return nx.is_tree(self.graph)
 
+    def isParent(self, vertex, potentialParent):
+        return self.graph.nodes[vertex]['parent'] == potentialParent
+
+    def isChild(self, vertex, potentialChild):
+        return potentialChild in self.graph.nodes[vertex]['children']
+
     def relationshipStatus(self, vertex):
         return "Parent: {parent_vertex}\nChildren: {children_vertices}".format(parent_vertex=self.graph.nodes[vertex]['parent'], children_vertices=self.graph.nodes[vertex]['children'])
 
@@ -50,6 +64,9 @@ class TreeValidator:
 
     def getChildren(self, vertex):
         return self.graph.nodes[vertex]['children']
+
+    def getGraph(self):
+        return self.graph
 
     def getStrandedVertices(self):
         return [vertex for vertex in self.graph.nodes if self.graph.nodes[vertex]['parent'] == None and vertex != self.root]

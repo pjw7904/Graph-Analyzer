@@ -4,11 +4,58 @@ from os.path import join as getFile
 import networkx as nx
 import GraphGenerator
 import Algorithms
-from FigureGenerator import plotAlgorithmSteps
+import ClosAddressing
+from FigureGenerator import plotAlgorithmSteps, drawGraph
+from GraphGenerator import fromGraphml
 
 def run(graphConfig, programConfig, args):
 
-    # Add whatever you want here!
+    '''
+        print("test")
+    #threeTier = GraphGenerator.generateGraph("foldedClos", graphConfig["single"]["foldedClos"], logDirectory=programConfig["results"]["log"])
+    #nx.write_gpickle(threeTier, "test.gpickle")
+
+    threeTier = nx.read_gpickle("clos_k4_t3.gpickle")
+    ClosAddressing.addVIDss(threeTier, 3, topTierRoot=False)
+    '''
+
+    print("TEST STARTING NOW")
+
+    d = 6
+    n = 7
+    valNum = 7
+    algos = {'mta':['remedy'], 'npaths':['npaths'], 'rsta':['rsta']}
+    args.remove = [0,4] # break edge (0,4)
+
+    for _ in range(6):
+        print(f"d = {d} | n = {n}")
+        G = nx.random_regular_graph(d, n, seed=37) # take the steps from here my dude
+        #drawGraph(G, getFile(programConfig["results"]["figure"], f"d{d}n{n}.png"))
+
+        for algo in algos.keys():
+            args.algorithm = algo
+            G = nx.random_regular_graph(d, n, seed=37) # take the steps from here my dude
+            Algorithms.runAlgorithmOnGraph(G, args, programConfig["results"]["log"], f"recovery4_{valNum}")
+            algos[algo].append(G.graph["step"])
+
+        n += 1
+        valNum += 1
+
+    print(algos)
+
+    '''
+    d = 6
+    n = 10
+    algos = ['mta', 'npaths']
+
+    print("muhhhhhhhhhh")
+
+    for algo in algos:
+        args.algorithm = algo
+        G = nx.random_regular_graph(d, n, seed=37) # take the steps from here my dude
+        Algorithms.runAlgorithmOnGraph(G, args, programConfig["results"]["log"], "treetest")
+        drawGraph(G.graph["tree"], getFile(programConfig["results"]["figure"], f"d{d}n{n}_{algo}_tree.png"))
+    '''
 
     return
 

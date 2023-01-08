@@ -8,8 +8,8 @@ from heapq import merge # Merge function implemented for path bundle merging
 from timeit import default_timer as timer # Get elasped time of execution
 from os.path import join as getFile
 from TreeAnalyzer import TreeValidator
-from networkx import single_source_shortest_path_length
-from networkx import write_graphml
+from networkx import single_source_shortest_path_length, write_graphml
+import MTA_RP
 import copy
 import logging
 import networkx as nx
@@ -97,7 +97,8 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
 
     # Confirm that what is created is a tree
     logging.warning("Results is a tree: {0}".format(treeValidator.isTree()))
-    
+    Graph.graph["tree"] = treeValidator.getGraph()
+
     # Network survival statistics
     Vm, probOfSurvival = calculateNetworkSurvival(Graph, root, m)
     logging.warning("|Vm| = {0}".format(len(Vm)))
@@ -108,6 +109,8 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
 
     # If an edge is to be removed and the resulting tree studied
     if(removal):
+        failureLimitedRecovery(Graph, root, removal[0], removal[1], treeValidator, remedyPaths, maxPaths)
+        '''
         recoveryTreeValidator = failureRecovery(Graph, root, removal[0], removal[1])
 
         # Log the resulting path bundles, tree, and statistics if necessary
@@ -119,21 +122,29 @@ def init(Graph, root, logFilePath, remedyPaths=False, m=2, batch=False, removal=
         logging.warning("Results is a tree: {0}".format(recoveryTreeValidator.isTree()))
 
         failureReconvergence(Graph, root, recoveryTreeValidator, remedyPaths, maxPaths)
+        '''
 
     # if an edge is not being removed, but batch testing is occurring for the initial result
     elif(batch):
         logging.error("{},{},{},{},{},{:.2f}"
         .format(Graph.number_of_nodes(), Graph.number_of_edges(), Graph.graph["step"], treeValidator.isTree(), len(Vm), (probOfSurvival*100)))
 
+    else:
+        print("removal not done here")
+
     # Return pertinent information, will change over time depending on the test 
     return Vm
 
-def send(Graph, v, root, sendingQueue, remedyPaths, maxPaths, treeValidator: TreeValidator):
+def send(Graph, v, root, sendingQueue, remedyPaths, maxPaths, treeValidator: TreeValidator, setDestination=None):
     logging.warning("-----------\nCURRENT QUEUE {0}".format(sendingQueue))
     logging.warning("SENDING NODE: {0}\nPATH BUNDLE = {1}\n".format(v, Graph.nodes[v]['pathBundle']))
 
     # For each neighbor x of v
     for x in Graph.neighbors(v):
+        # If only one node is being targeted, skip all other neighbors
+        if(setDestination and setDestination != x):
+            continue
+
         logging.warning("NEIGHBOR: {0} ({1})".format(x, Graph.nodes[x]['ID']))
         logging.warning("\tCurrent path bundle: {0}".format(Graph.nodes[x]['pathBundle']))
 
@@ -180,7 +191,7 @@ def send(Graph, v, root, sendingQueue, remedyPaths, maxPaths, treeValidator: Tre
 
     # Remove v from the sending queue now that we are done with each neighbor
     s = sendingQueue.pop(TOP_NODE)
-    if sendingQueue:
+    if sendingQueue and not setDestination:
         send(Graph, s, root, sendingQueue, remedyPaths, maxPaths, treeValidator)
 
     return
@@ -190,6 +201,82 @@ def send(Graph, v, root, sendingQueue, remedyPaths, maxPaths, treeValidator: Tre
 EDGE FAILURE FUNCTIONS
 ========================
 '''
+def failureLimitedRecovery(Graph, root, brokenVertex1, brokenVertex2, treeValidator: TreeValidator, remedyPaths, maxPaths):
+    # Set up recovery steps by clearing the init step count
+    Graph.graph["step"] = 0
+    localSteps = 0
+
+    # Create a validation object to determine if the result is a tree
+    newTreeValidator = copy.deepcopy(treeValidator)
+
+    # Check lineage
+    if(treeValidator.isParent(brokenVertex1, brokenVertex2)):
+        failedEdge = Graph.nodes[brokenVertex2]['ID'] + Graph.nodes[brokenVertex1]['ID']
+        child = brokenVertex1
+    elif(treeValidator.isParent(brokenVertex2, brokenVertex1)):
+        failedEdge = Graph.nodes[brokenVertex1]['ID'] + Graph.nodes[brokenVertex2]['ID']
+        child = brokenVertex2
+    else:
+        localSteps += 1
+        logging.warning(f"\n=====RECOVERY RESULTS=====\n")
+        logging.warning("Tree not broken, no updates to primary paths.") 
+        return
+
+    # Remove the edge from the graph
+    if(Graph.has_edge(brokenVertex1, brokenVertex2)):
+        Graph.remove_edge(brokenVertex1, brokenVertex2)
+    else:
+        Graph.remove_edge(brokenVertex2, brokenVertex1)
+
+    # Remove the local root path from the child's bundle
+    Graph.nodes[child]['pathBundle'].pop(0)
+    localSteps += 1
+
+    # If there are still paths in the child's bundle
+    if Graph.nodes[child]['pathBundle']:
+        parentID = Graph.nodes[child]['pathBundle'][0][-2]
+        newTreeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], child)
+
+    # Purge the broken branch
+    Q = [child]
+    while Q:
+        vertex = Q.pop(0)
+        for child in treeValidator.getChildren(vertex):
+            currentBundleLen = len(Graph.nodes[child]['pathBundle'])
+            # Remove all paths that refer to the broken path and continue to traverse down the broken branch
+            Graph.nodes[child]['pathBundle'] = [path for path in Graph.nodes[child]['pathBundle'] if failedEdge not in path]
+            Q.append(child)
+            
+            bundleSizeDifference = currentBundleLen - len(Graph.nodes[child]['pathBundle'])
+            if(bundleSizeDifference < 2):
+                localSteps += 1
+            else:
+                localSteps += bundleSizeDifference
+
+            # If there are still paths in the bundle
+            if Graph.nodes[child]['pathBundle']:
+                parentID = Graph.nodes[child]['pathBundle'][0][-2]
+                newTreeValidator.addParent(Graph.graph['ID_to_vertex'][parentID], child)
+            # If there are no longer paths in the bundle
+            else:
+                newTreeValidator.removeParent(child)
+    
+    Graph.graph["step"] = localSteps
+    MTA_RP.logMTAInfo(Graph, newTreeValidator, "RECOVERY RESULTS")
+
+    # Fix stranded vertices by forcing them onto a new branch
+    for vertex in newTreeValidator.getStrandedVertices():
+        print(f"{vertex} has been stranded")
+        for neighbor in Graph.neighbors(vertex):
+            print(f"gathering update from {neighbor}")
+            send(Graph, neighbor, root, [neighbor], remedyPaths, maxPaths, newTreeValidator, setDestination=vertex)
+            localSteps += 1
+
+    Graph.graph["step"] = localSteps
+    MTA_RP.logMTAInfo(Graph, newTreeValidator, "UPDATED RECOVERY RESULTS")
+
+    return
+
 def failureRecovery(Graph, root, brokenVertex1, brokenVertex2):
     # Determine the failed path ID (and its reverse, you won't know if the user put in the correct order)
     failedIDs = Graph.nodes[brokenVertex1]['ID'] + Graph.nodes[brokenVertex2]['ID']
@@ -400,7 +487,6 @@ def addRemedyPaths(Graph, vertex, validPaths):
 
 def removePaths(Graph, vertex, failedEdge):
     return [path for path in Graph.nodes[vertex]['pathBundle'] if not any(map(path.__contains__, failedEdge))]
-
 
 def getPathEdgeSet(path):
     edgeSet = []

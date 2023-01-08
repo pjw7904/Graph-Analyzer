@@ -1,9 +1,8 @@
 from random import seed
 import sys
+import Clos
 import networkx as nx
 from os.path import join as getFile
-
-import Clos
 
 
 '''
