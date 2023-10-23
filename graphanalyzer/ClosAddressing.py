@@ -54,7 +54,7 @@ def addVIDss(clos, topTier, startTier, topTierRoot=True):
         else:
             clos.nodes[currentNeighbor]["VIDs"].extend(newVIDs)
 
-    for tier in reversed(range(3+1)):
+    for tier in reversed(range(topTier+1)):
         if(tier == 0):
             break
         nodes = [v for v in clos if clos.nodes[v]["tier"] == tier]

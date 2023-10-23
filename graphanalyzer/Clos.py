@@ -5,6 +5,7 @@ import re
 import networkx as nx
 from copy import deepcopy
 from collections import defaultdict
+import ClosAddressing
 
 '''
 In the context of vertices/interfaces/ports, there is an upper tier, "north", and a lower tier, "south"
@@ -50,6 +51,7 @@ def folded_clos_graph(k, t, options=None, logDirectory=None):
     logGraphInfo(graph, k, t, t)
 
     # OTHER TESTS I'VE RUN
+    #ClosAddressing.addVIDss(graph, t, t, topTierRoot=True)
     #testBlocking(graph, t)
     #definePlanes(graph, t)
 
