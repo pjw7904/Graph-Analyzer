@@ -2,21 +2,7 @@
 import sys # Access to system-level functions
 from os.path import join as getFile
 
-## External modules
-import networkx as nx # Graph creation and analysis
-import matplotlib.pyplot as plt # Drawing graphs
-from tabulate import tabulate # Printing formatted ASCII tables
-from networkx import NetworkXError # Handling graph-specific errors
-
-## Custom modules
-# Shortest Path Tree (SPT) algorithms
-import MTA_RP # MTA Remedy Path algorithm
-import MTP_NPaths # MTA N-Path algorithm
-import RSTA # Rapid Spanning Tree algorithm
-import DA # Dijkstra's algorithm
-
 # Graph creation and analysis
-import ClassicalMetrics # Classic Graphy Theory metrics
 import GraphGenerator # Generate graphs via well-known algorithms
 import FigureGenerator
 import TestGenerator
