@@ -3,8 +3,9 @@ from heapq import merge # Merge function implemented for path bundle merging
 import copy # Get the ability to perform a deep copy
 
 class MTA(DistributedAlgorithm):
-    def __init__(self, id, isRoot):
+    def __init__(self, name, id, isRoot):
         self.isRoot = isRoot
+        self.name = name
         self.id = id
 
         if(isRoot):
@@ -12,7 +13,7 @@ class MTA(DistributedAlgorithm):
         else:
             self.pathBundle = [] # Non-root vertices are assigned an empty path bundle
 
-    def processMessage(self, message):
+    def processMessage(self, message) -> bool:
         hasUpdate = False
 
         # Delete any path that already contains the local label L(v) and append L(v) to the rest of them
@@ -71,3 +72,11 @@ class MTA(DistributedAlgorithm):
                     edgeSet.append(vertexSet[currentEdge-1] + vertexSet[currentEdge])
 
         return edgeSet
+    
+    def __str__(self) -> str:
+        resultOutput = f"{self.name} ({self.id})\n"
+
+        for path in self.pathBundle:
+            resultOutput += f"\t{path}\n"
+
+        return resultOutput
