@@ -1,4 +1,5 @@
 ## Custom modules
+from MTA import MTA
 import MTA_RP # MTA Remedy Path algorithm
 import MTP_NPaths # MTA N-Path algorithm
 import MTP_NPaths_BFS # MTA N-Path BFS algorithm
@@ -7,6 +8,7 @@ import DA # Dijkstra's algorithm
 import YA # Yen's Algorithm
 import logging
 import networkx as nx
+import Propagation
 from os.path import join as getFile
 
 LOG_FILE = "{}{}_Output.log"
@@ -22,36 +24,36 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     # Make sure the root is the right type
     root = sanatizeRootType(args.root)
 
-    ## Run the specified algorithm
-    # Rapid Spanning Tree Algorithm
-    if(args.algorithm == "rsta"):
-        RSTA.init(G=graph, r=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest, removal=removedEdge(graph, args.remove))
+    # Start IDs at 'A'
+    IDCount = 0
 
-    # Meshed Tree Algorithm - N-Paths
-    elif(args.algorithm == "npaths"):
-        # If a valid edge is to be removed, it will be included in the analysis
-        MTP_NPaths.init(Graph=graph, root=root, logFilePath=logFilePath, remedyPaths=args.remedy, m=args.backups, batch=batch, removal=removedEdge(graph, args.remove), testName=nameOfTest)
+    # Initalize a distributed algorithm for each vertex in the graph
+    for vertex in sorted(graph.nodes):
+        id = chr(65 + IDCount)
 
-    # Meshed Tree Algorithm - N-Paths - BFS
-    elif(args.algorithm == "bfs"):
-        setVertexLabels(graph, root)
-        MTP_NPaths_BFS.init(Graph=graph, root=root, m=args.backups)
+        if(vertex == root):
+            logging.warning(f"{vertex} (root) ID = {id}\n")
+            isRoot = True
+        else:
+            logging.warning(f"{vertex} ID = {id}\n")
+            isRoot = False
 
-    # Meshed Tree Algorithm - Remedy Paths 
-    elif(args.algorithm == "mta"):
-        setVertexLabels(graph, root)
-        MTA_RP.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, removal=removedEdge(graph, args.remove), testName=nameOfTest)
+        # Meshed Tree Algorithm - Remedy Paths 
+        if(args.algorithm == "mta"):
+            graph.nodes[vertex]['algo'] = MTA(vertex, id, isRoot)
 
-    # Dijkstra's Algorithm
-    elif(args.algorithm == "da"):
-        DA.init(Graph=graph, root=root, logFilePath=logFilePath, batch=batch, testName=nameOfTest)
+        else:
+            raise nx.NetworkXError("Algorithm type is not valid")
 
-    # Yen's Algorithm
-    elif(args.algorithm == "ya"):
-        YA.init(baseGraph=graph, source=root, sink=args.target)
+        if(IDCount == 25): # jump to lowercase Latin alphabet
+            IDCount += 7
+        elif(IDCount == 57): # jump to additional letters beyond standard Latin alphabet 
+            IDCount = 192
+        else:
+            IDCount += 1
 
-    else:
-        raise nx.NetworkXError("Graph type is not valid")
+    # Execute the test
+    Propagation.runTest(graph, root)
 
     return
 
@@ -92,35 +94,4 @@ def setLoggingLevel(logFilePath, batch, testName, algoName):
                                                           encoding='utf-8', mode='w')],
                                                           format='%(message)s',
                                                           level=logging.WARNING)
-    return
-
-'''
-Create graph and node-wide structures for algorithm analysis
-
-Graph = The graph the algorithm is run on
-root = The root of the tree
-'''
-def setVertexLabels(Graph, root):
-    IDCount = 0
-    Graph.graph['ID_to_vertex'] = {} # Define a graph-wide dictionary to translate IDs back to vertices
-
-    for node in sorted(Graph.nodes):
-        # Add a mapping in both directions, node --> ID (vertex-level) and ID --> node (graph-level)
-        Graph.nodes[node]['ID'] = chr(65 + IDCount) # 65 is the decimal value for the character 'A'
-        Graph.graph['ID_to_vertex'][chr(65 + IDCount)] = node
-
-        if(node == root):
-            logging.warning("Root node is {0}, ID = {1}\n".format(node, Graph.nodes[node]['ID']))
-        else:
-            logging.warning("Non-Root node {0}, ID = {1}\n".format(node, Graph.nodes[node]['ID']))
-
-        if(IDCount == 25): # jump to lowercase Latin alphabet
-            IDCount += 7
-        elif(IDCount == 57): # jump to additional letters beyond standard Latin alphabet 
-            IDCount = 192
-        else:
-            IDCount += 1
-
-    logging.warning("---------\n")
-
     return
