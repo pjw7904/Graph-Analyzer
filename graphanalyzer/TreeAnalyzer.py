@@ -1,18 +1,24 @@
 import networkx as nx
 
 class TreeValidator:
-    def __init__(self, vertices, root):
-        # Create an empty, simple graph and add the inputted vertices
+    def __init__(self, root, vertices=None):
+        # Create an empty, simple graph and add the inputted vertices (if any)
         self.graph = nx.Graph()
-        self.graph.add_nodes_from(vertices)
 
         # Mark the root of the tree, as it will never have a parent
         self.root = root
 
-        # Add inputted vertices into new graph
-        for vertex in vertices:
-            self.graph.nodes[vertex]['children'] = []   # mark children on the given node
-            self.graph.nodes[vertex]['parent'] = None   # mark the parent of the given node (root will not have one)
+        if(vertices):
+            # Add inputted vertices into new graph
+            for vertex in vertices:
+                self.addNode(vertex)
+
+    def addNode(self, node):
+        self.graph.add_node(node)
+        self.graph.nodes[node]['children'] = []   # mark children on the given node
+        self.graph.nodes[node]['parent'] = None   # mark the parent of the given node
+
+        return 
 
     def addParent(self, parent, child):
         # Determine who the child's previous parent is (or if they don't have one)

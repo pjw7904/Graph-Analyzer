@@ -3,12 +3,16 @@ from heapq import merge # Merge function implemented for path bundle merging
 import copy # Get the ability to perform a deep copy
 
 class MTA(DistributedAlgorithm):
-    def __init__(self, name, id, isRoot):
-        self.isRoot = isRoot
+    def __init__(self, name, id, data):
+        # Node identifers
         self.name = name
         self.id = id
 
-        if(isRoot):
+        # Additional node data
+        self.isRoot = data["isRoot"]
+        self.tree = data["tree"]
+
+        if(self.isRoot):
             self.pathBundle = [id] # The root vertex is given a path bundle of itself, which is the only path it will contain
         else:
             self.pathBundle = [] # Non-root vertices are assigned an empty path bundle
@@ -53,6 +57,7 @@ class MTA(DistributedAlgorithm):
         # If the new path bundle is different from the previous one, then the vertex must announce the new path bundle to neighbors
         if tempBundle != self.pathBundle:
             self.pathBundle = tempBundle # WATCH FOR SHALLOW COPIES
+            self.tree.addParent(self.pathBundle[0][-2], self.id)
             hasUpdate = True
 
         return hasUpdate

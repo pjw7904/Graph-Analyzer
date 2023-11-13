@@ -11,7 +11,6 @@ import Algorithms
 # Configuration
 import parseConfig as config
 
-
 '''
 main, entry to program 
 

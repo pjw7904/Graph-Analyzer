@@ -1,14 +1,11 @@
 ## Custom modules
 from MTA import MTA
-import MTA_RP # MTA Remedy Path algorithm
-import MTP_NPaths # MTA N-Path algorithm
-import MTP_NPaths_BFS # MTA N-Path BFS algorithm
-import RSTA # Rapid Spanning Tree algorithm
-import DA # Dijkstra's algorithm
-import YA # Yen's Algorithm
+from LSA import LSA
+from TreeAnalyzer import TreeValidator
+import Test as Test
+
 import logging
 import networkx as nx
-import Propagation
 from os.path import join as getFile
 
 LOG_FILE = "{}{}_Output.log"
@@ -27,21 +24,33 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
     # Start IDs at 'A'
     IDCount = 0
 
+    # Holds node-specific data not related to its ID
+    data = {}
+
+    # Additional graph validator for SPT algorithms
+    treeValidator = TreeValidator(root)
+    treeNodes = []
+
     # Initalize a distributed algorithm for each vertex in the graph
     for vertex in sorted(graph.nodes):
         id = chr(65 + IDCount)
+        data["neighbors"] = list(graph.neighbors(vertex))
+        data["tree"] = treeValidator
 
         if(vertex == root):
             logging.warning(f"{vertex} (root) ID = {id}\n")
-            isRoot = True
+            data["isRoot"] = True
         else:
             logging.warning(f"{vertex} ID = {id}\n")
-            isRoot = False
+            data["isRoot"] = False
 
         # Meshed Tree Algorithm - Remedy Paths 
         if(args.algorithm == "mta"):
-            graph.nodes[vertex]['algo'] = MTA(vertex, id, isRoot)
-
+            treeValidator.addNode(id)
+            graph.nodes[vertex]['algo'] = MTA(vertex, id, data)
+        elif(args.algorithm == "da"):
+            treeValidator.addNode(vertex)
+            graph.nodes[vertex]['algo'] = LSA(vertex, id, data)
         else:
             raise nx.NetworkXError("Algorithm type is not valid")
 
@@ -53,7 +62,7 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
             IDCount += 1
 
     # Execute the test
-    Propagation.runTest(graph, root)
+    Test.runTest(graph, root, treeValidator)
 
     return
 

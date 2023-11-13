@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class DistributedAlgorithm(ABC):
     @abstractmethod
-    def __init__(self, name, id, isRoot):
+    def __init__(self, name, id, data):
         pass
 
     @abstractmethod
