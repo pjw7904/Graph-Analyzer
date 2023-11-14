@@ -1,6 +1,7 @@
 ## Custom modules
 from MTA import MTA
 from LSA import LSA
+from RSTA import RSTA
 from TreeAnalyzer import TreeValidator
 import Test as Test
 
@@ -51,6 +52,9 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
         elif(args.algorithm == "da"):
             treeValidator.addNode(vertex)
             graph.nodes[vertex]['algo'] = LSA(vertex, id, data)
+        elif(args.algorithm == "rsta"):
+            treeValidator.addNode(id)
+            graph.nodes[vertex]['algo'] = RSTA(vertex, id, data)
         else:
             raise nx.NetworkXError("Algorithm type is not valid")
 
