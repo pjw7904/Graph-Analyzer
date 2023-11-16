@@ -16,7 +16,7 @@ def runTest(graph, root, treeValidator):
 
             receiverMustSend = propagation(senderAlgorithm, receiverAlgorithm)
 
-            if(receiverMustSend):
+            if(receiverMustSend and receiver not in sendQueue):
                 sendQueue.append(receiver)
 
     # Print the results
