@@ -63,7 +63,6 @@ class RSTA(DistributedAlgorithm):
 
             self.setRoot(updatedMessage)
 
-
         # Store the updated RV from the neighbor 
         self.neighbor[message.VID] = message
 
@@ -75,12 +74,6 @@ class RSTA(DistributedAlgorithm):
         self.rv = RSTAVector(message.RPC, self.rv.VID)
 
         self.tree.addParent(message.VID, self.id)
-
-        return
-
-    def updateRoot(self, messageRV):
-        self.setAlternate(messageRV) # Throw it back into the AVPQ and see if it pops back out
-        self.getNewRoot()
 
         return
 
