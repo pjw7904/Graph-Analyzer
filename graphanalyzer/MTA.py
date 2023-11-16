@@ -1,6 +1,9 @@
 from DistributedAlgorithm import DistributedAlgorithm
-from heapq import merge # Merge function implemented for path bundle merging
+from collections import namedtuple
+import heapq
 import copy # Get the ability to perform a deep copy
+
+MTAVector = namedtuple("MTA_Vector", "cost path")
 
 class MTA(DistributedAlgorithm):
     def __init__(self, name, id, data):
@@ -13,51 +16,54 @@ class MTA(DistributedAlgorithm):
         self.tree = data["tree"]
 
         if(self.isRoot):
-            self.pathBundle = [id] # The root vertex is given a path bundle of itself, which is the only path it will contain
+            self.preferred = MTAVector(0, self.id)
+            self.pathBundle = [MTAVector(0, self.id)]
         else:
-            self.pathBundle = [] # Non-root vertices are assigned an empty path bundle
+            self.preferred = None
+            self.pathBundle = []
+
+        self.remedyPaths = []
 
     def processMessage(self, message) -> bool:
         hasUpdate = False
 
-        # Delete any path that already contains the local label L(v) and append L(v) to the rest of them
-        pathsReceived = [path + self.id for path in message if self.id not in path]
-        validPaths = list(dict.fromkeys(pathsReceived)) # remove duplicates
+        # If you're the root, ignore all messages, nothing to do.
+        if(self.isRoot):
+            return hasUpdate
 
-        # Form a great bundle B(v) by merging the path bundle with the paths from the calling vertex
-        greatBundle = list(merge(self.pathBundle, validPaths, key=lambda x: (len(x), x)))
+        # For each incoming path that does not include your ID, add it to path bundle
+        for path in message:
+            if self.id not in path.path:
+                heapq.heappush(self.remedyPaths, MTAVector(path.cost + 1, path.path + self.id))
 
-        # Remove the preferred path and create a new path bundle with it.
-        P = copy.deepcopy(greatBundle[0])
-        del greatBundle[0]
+        # Add the current preferred path to see if it is still the best path
+        if(self.preferred is not None):
+            self.preferred = heapq.heappushpop(self.remedyPaths, self.preferred)
+        else:
+            self.preferred = heapq.heappop(self.remedyPaths)
 
-        tempBundle = [P] # the new path bundle with the preferred path
-
-        # WATCH OUT FOR SHALLOW COPYING BELOW
+        # Define additional bundles
+        tempBundle = [self.preferred]
+        greatBundle = copy.deepcopy(self.remedyPaths)
 
         # Define a deletion set (deletions that will break the path)
-        S = self.getPathEdgeSet(P)
+        S = self.getPathEdgeSet(self.preferred.path)
 
-        # Process as many of the remaining paths in the great bundle as possible
         while(greatBundle and S):
-            # First path remaining in the great bundle, remove it from great bundle
-            Q = copy.deepcopy(greatBundle[0])
-            del greatBundle[0]
+            Q = heapq.heappop(greatBundle)
 
             # T contains the edges in P that Q will remedy
-            remedySet = self.getPathEdgeSet(Q)
+            remedySet = self.getPathEdgeSet(Q.path)
             T = [edge for edge in S if edge not in remedySet]
 
             if(T):
                 tempBundle.append(Q)
-
                 # S now contains the remaining edges still in need of a remedy
                 S = [edge for edge in S if edge not in T]
 
-        # If the new path bundle is different from the previous one, then the vertex must announce the new path bundle to neighbors
         if tempBundle != self.pathBundle:
-            self.pathBundle = tempBundle # WATCH FOR SHALLOW COPIES
-            self.tree.addParent(self.pathBundle[0][-2], self.id)
+            self.pathBundle = copy.deepcopy(tempBundle)
+            self.tree.addParent(self.preferred.path[-2], self.id)
             hasUpdate = True
 
         return hasUpdate
