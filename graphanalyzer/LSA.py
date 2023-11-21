@@ -1,6 +1,7 @@
 from DistributedAlgorithm import DistributedAlgorithm
 from queue import PriorityQueue
 import networkx as nx
+import copy
 
 class LSA(DistributedAlgorithm):
     def __init__(self, name, id, data):
@@ -12,6 +13,7 @@ class LSA(DistributedAlgorithm):
         self.neighbors = data["neighbors"]
         self.isRoot = data["isRoot"] # all nodes are root, but used for validation
         self.tree = data["tree"]
+        self.failurePropagation = None # If an edge fails and needs to be propagated
 
         # Initial graph data, add node and it's neighbors
         self.graph = nx.Graph()
@@ -23,14 +25,26 @@ class LSA(DistributedAlgorithm):
     def processMessage(self, message) -> bool:
         hasUpdate = False
 
-        if(nx.utils.graphs_equal(self.graph, message)):
-            return hasUpdate
+        if(isinstance(message, nx.classes.graph.Graph)):
+            if(nx.utils.graphs_equal(self.graph, message)):
+                return hasUpdate
+            else:
+                self.graph = nx.compose(self.graph, message)
+                self.runDijkstra()
+                hasUpdate = True
         else:
-            self.graph = nx.compose(self.graph, message)
-            self.runDijkstra()
-            hasUpdate = True
+            if(self.graph.has_edge(*message)):
+                self.edgeRemovalUpdate(message)
+                hasUpdate = True
 
         return hasUpdate
+    
+    def edgeRemovalUpdate(self, edge):
+        self.graph.remove_edge(*edge)
+        self.runDijkstra()
+        self.failurePropagation = edge
+
+        return
 
     def runDijkstra(self):
         EDGE_COST = 1
@@ -46,7 +60,7 @@ class LSA(DistributedAlgorithm):
             parent[node] = None
 
         while not unvisited.empty():
-            (k, u) = unvisited.get(timeout=5) # THIS IS CAUSING AN ISSUE
+            (k, u) = unvisited.get(timeout=5)
             
             if(k == dist[u]):
                 for v in self.graph.neighbors(u):
@@ -66,6 +80,12 @@ class LSA(DistributedAlgorithm):
 
         return
 
+    def processFailure(self, failedEdge):
+        if(self.graph.has_edge(*failedEdge)):
+            self.edgeRemovalUpdate(failedEdge)
+
+        return
+
     def addNodeAndEdges(self, source, neighbors):
         for neighbor in neighbors:
             self.graph.add_edge(source, neighbor)
@@ -73,7 +93,18 @@ class LSA(DistributedAlgorithm):
         return
 
     def messageToSend(self):
-        return self.graph
+        if(self.failurePropagation is not None):
+            message = copy.deepcopy(self.failurePropagation)
+        else:
+            message = self.graph
+
+        return message
+
+    def sendingCleanup(self):
+        if(self.failurePropagation is not None):
+            self.failurePropagation = None
+
+        return
 
     def __str__(self) -> str:
         dist = self.result[0]

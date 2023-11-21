@@ -10,7 +10,15 @@ class DistributedAlgorithm(ABC):
         pass
 
     @abstractmethod
+    def processFailure(self, failedEdge):
+        pass
+
+    @abstractmethod
     def messageToSend(self):
+        pass
+
+    @abstractmethod
+    def sendingCleanup(self):
         pass
 
     @abstractmethod

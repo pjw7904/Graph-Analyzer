@@ -27,14 +27,16 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
 
     # Holds node-specific data not related to its ID
     data = {}
+    nameToID = {}
 
     # Additional graph validator for SPT algorithms
     treeValidator = TreeValidator(root)
-    treeNodes = []
 
     # Initalize a distributed algorithm for each vertex in the graph
     for vertex in sorted(graph.nodes):
         id = chr(65 + IDCount)
+        nameToID[vertex] = id
+
         data["neighbors"] = list(graph.neighbors(vertex))
         data["tree"] = treeValidator
 
@@ -45,16 +47,22 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
             logging.warning(f"{vertex} ID = {id}\n")
             data["isRoot"] = False
 
-        # Meshed Tree Algorithm - Remedy Paths 
+        # Meshed Tree Algorithm
         if(args.algorithm == "mta"):
             treeValidator.addNode(id)
             graph.nodes[vertex]['algo'] = MTA(vertex, id, data)
+        
+        # Generic Link-State Algorithm - Dijkstra's Algorithm
         elif(args.algorithm == "da"):
             treeValidator.addNode(vertex)
             graph.nodes[vertex]['algo'] = LSA(vertex, id, data)
+
+        # Rapid Spanning Tree Algorithm
         elif(args.algorithm == "rsta"):
             treeValidator.addNode(id)
             graph.nodes[vertex]['algo'] = RSTA(vertex, id, data)
+
+        # Unknown algorithm
         else:
             raise nx.NetworkXError("Algorithm type is not valid")
 
@@ -66,7 +74,19 @@ def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
             IDCount += 1
 
     # Execute the test
-    Test.runTest(graph, root, treeValidator)
+    Test.runTest(graph, [root], treeValidator, args.algorithm)
+
+    # If a failure simulation must occur, do so now that initial convergence has finished
+    if(removedEdge(graph, args.remove)):
+        graph.remove_edge(*args.remove)
+        idEdge = None
+
+        if(args.algorithm != "da"):
+            idEdge = (nameToID[args.remove[0]], nameToID[args.remove[1]])
+
+        edgeTuple = args.remove
+
+        Test.runFailureTest(graph, edgeTuple, treeValidator, args.algorithm, failedEdgeIDs=idEdge)
 
     return
 
@@ -85,7 +105,7 @@ def sanatizeRootType(root):
 Determine if an edge exists to remove
 '''
 def removedEdge(graph, edge):
-    if(edge and len(edge) == 2 and graph.has_edge(int(edge[0]), int(edge[1]))):
+    if(edge and len(edge) == 2 and graph.has_edge(edge[0], edge[1])):
         return edge
     else:
         return None

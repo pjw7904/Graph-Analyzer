@@ -9,6 +9,9 @@ DESIGNATED_ROLE = "D"
 ROOT_ROLE = "R"
 ALTERNATE_ROLE = "A"
 UNDEFINED_ROLE = "U"
+BROKEN_LINK = "B"
+
+BROKEN_COST = -1
 
 class RSTA(DistributedAlgorithm):
     def __init__(self, name, id, data):
@@ -30,7 +33,10 @@ class RSTA(DistributedAlgorithm):
 
         self.neighbor = {}
         self.role = defaultdict(lambda: UNDEFINED_ROLE)
+
+        # To hold alternates
         self.AVPQ = PriorityQueue()
+        self.AVDist = {} # Makes sure the AVPQ pop is up-to-date
 
     def processMessage(self, message) -> bool:
         hasUpdate = False
@@ -55,12 +61,9 @@ class RSTA(DistributedAlgorithm):
 
             if(neighborWasRoot):
                 self.getNewRoot()
-        
+
         # min is d[u] + c(u, v) in this case
         else:
-            if(self.root):
-                self.setAlternate(self.root)
-
             self.setRoot(updatedMessage)
 
         # Store the updated RV from the neighbor 
@@ -68,18 +71,43 @@ class RSTA(DistributedAlgorithm):
 
         return hasUpdate
 
-    def setRoot(self, message):
-        self.role[message.VID] = ROOT_ROLE
-        self.root = message
-        self.rv = RSTAVector(message.RPC, self.rv.VID)
+    def processFailure(self, failedEdge):
+        failedNeighbor = failedEdge[0] if self.id != failedEdge[0] else failedEdge[1]
 
-        self.tree.addParent(message.VID, self.id)
+        if(self.role[failedNeighbor] == ROOT_ROLE):
+            self.getNewRoot()
+
+            # If there is no alternate, you need to start over and figure out who will be the new root.
+            if(self.root == self.rv):
+                self.neighbor = {}
+                self.role = defaultdict(lambda: UNDEFINED_ROLE)
+                self.AVPQ = PriorityQueue()
+                self.AVDist = {}
+
+        elif(self.role[failedNeighbor] == ALTERNATE_ROLE):
+            self.AVDist[failedNeighbor.VID] = BROKEN_COST
+
+        self.neighbor[failedNeighbor] = RSTAVector(BROKEN_COST, failedNeighbor)
+        self.role[failedNeighbor] = BROKEN_LINK
+
+        return
+
+    def setRoot(self, rootRV):
+        if(self.root and self.root.VID != self.id):
+            self.setAlternate(self.root)
+
+        self.role[rootRV.VID] = ROOT_ROLE
+        self.root = rootRV
+        self.rv = RSTAVector(rootRV.RPC, self.rv.VID)
+
+        self.tree.addParent(rootRV.VID, self.id)
 
         return
 
     def setAlternate(self, altRV):
         self.role[altRV.VID] = ALTERNATE_ROLE
         self.AVPQ.put(altRV)
+        self.AVDist[altRV.VID] = altRV.RPC
 
         return
     
@@ -89,15 +117,31 @@ class RSTA(DistributedAlgorithm):
         return
 
     def getNewRoot(self):
-        if(self.AVPQ.empty()):
-            self.rv = RSTAVector(float('inf'), self.id)
-        else:
-            self.setRoot(self.AVPQ.get(timeout=5))
+        rootHasNotBeenChosen = True
+
+        while(rootHasNotBeenChosen):
+            if(self.AVPQ.empty()):
+                #if(self.root.VID != self.id):
+                #    pass
+                self.rv = RSTAVector(float('inf'), self.id)
+                self.root = self.rv
+                rootHasNotBeenChosen = False                    
+
+            else:
+                newRoot = self.AVPQ.get(timeout=5)
+
+                if(self.role[newRoot.VID] == ALTERNATE_ROLE and newRoot.RPC == self.AVDist[newRoot.VID]): # D issue here
+                    self.setRoot(newRoot)
+                    rootHasNotBeenChosen = False
 
         return
 
     def messageToSend(self):
         return self.rv
+
+    def sendingCleanup(self):
+        # Nothing to do for RSTA, only one type of message
+        return
 
     def __str__(self) -> str:
         resultOutput = f"{self.name} ({self.id}) - {self.rv}\n"
