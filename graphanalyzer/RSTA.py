@@ -1,6 +1,7 @@
 from DistributedAlgorithm import DistributedAlgorithm
 from queue import PriorityQueue
 from collections import namedtuple, defaultdict
+import copy
 
 # Vector that is exchanged between vertices to determine tree structure
 RSTAVector = namedtuple("RSTA_Vector", "RPC VID")
@@ -11,6 +12,7 @@ ALTERNATE_ROLE = "A"
 UNDEFINED_ROLE = "U"
 BROKEN_LINK = "B"
 
+UNDEFINED_COST = -2
 BROKEN_COST = -1
 
 class RSTA(DistributedAlgorithm):
@@ -36,38 +38,38 @@ class RSTA(DistributedAlgorithm):
 
         # To hold alternates
         self.AVPQ = PriorityQueue()
-        self.AVDist = {} # Makes sure the AVPQ pop is up-to-date
+        self.AVDist = defaultdict(lambda: UNDEFINED_COST)
 
     def processMessage(self, message) -> bool:
         hasUpdate = False
         EDGE_COST = 1
 
-        # If the neighbor has been seen before, but their RV is the same as the last one sent, nothing to do.
-        if(message.VID in self.neighbor and self.neighbor[message.VID] == message):
-            return hasUpdate
-
-        hasUpdate = True
-
-        # Update RPC = RPC + weight(edge)
+        oldRole = copy.deepcopy(self.role[message.VID])
+        sameMessage = True if message.VID in self.neighbor and self.neighbor[message.VID] == message else False
         updatedMessage = RSTAVector(message.RPC + EDGE_COST, message.VID)
         neighborWasRoot = True if self.role[updatedMessage.VID] == ROOT_ROLE else False
 
         # d[v] = min{ d[v], d[u] + c(u, v) }, min is d[v] in this case
         if(self.root < updatedMessage):
             if(message < self.rv):
-                self.setAlternate(updatedMessage)
+                if(self.AVDist[message.VID] != updatedMessage.RPC):
+                    self.setAlternate(updatedMessage)
             else:
                 self.setDesignated(updatedMessage)
 
-            if(neighborWasRoot):
+            if(neighborWasRoot and not sameMessage):
                 self.getNewRoot()
 
         # min is d[u] + c(u, v) in this case
         else:
-            self.setRoot(updatedMessage)
+            if(not sameMessage or not neighborWasRoot):
+                self.setRoot(updatedMessage)
 
         # Store the updated RV from the neighbor 
         self.neighbor[message.VID] = message
+
+        if(not sameMessage or self.role[message.VID] != oldRole):
+            hasUpdate = True
 
         return hasUpdate
 
@@ -85,7 +87,7 @@ class RSTA(DistributedAlgorithm):
                 self.AVDist = {}
 
         elif(self.role[failedNeighbor] == ALTERNATE_ROLE):
-            self.AVDist[failedNeighbor.VID] = BROKEN_COST
+            self.AVDist[failedNeighbor] = BROKEN_COST
 
         self.neighbor[failedNeighbor] = RSTAVector(BROKEN_COST, failedNeighbor)
         self.role[failedNeighbor] = BROKEN_LINK
