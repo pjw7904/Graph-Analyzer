@@ -1,8 +1,9 @@
 {
-    "graphs": "C:/Users/peter/Desktop/Research/mtp-analysis/graphs/graphml",
+    "graphs": "C:/Users/peter/Documents/research/mtp-analysis/graphs/graphml",
     "results":
         {
-            "log": "C:/Users/peter/Desktop/Research/mtp-analysis/results/log_results",
-            "figure": "C:/Users/peter/Desktop/Research/mtp-analysis/results/fig_results"
+            "log": "C:/Users/peter/Documents/research/mtp-analysis/results/log_results",
+            "figure": "C:/Users/peter/Documents/research/mtp-analysis/results/fig_results",
+            "test": "C:/Users/peter/Documents/research/mtp-analysis/results/test_results"
         }
 }

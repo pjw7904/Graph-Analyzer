@@ -15,9 +15,9 @@ LOG_FILE_BATCH = "{}batch_test.csv"
 '''
 Run the specified SPT algorithm with any included additional options
 '''
-def runAlgorithmOnGraph(graph, args, logFilePath, nameOfTest, batch=False):
+def runAlgorithmOnGraph(graph, args):
     # set logging for the simulation
-    setLoggingLevel(logFilePath, batch, nameOfTest, args.algorithm)
+    #setLoggingLevel(logFilePath, batch, nameOfTest, args.algorithm)
 
     # Make sure the root is the right type
     root = sanatizeRootType(args.root)

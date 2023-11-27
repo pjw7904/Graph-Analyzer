@@ -7,6 +7,7 @@ import GraphGenerator # Generate graphs via well-known algorithms
 import FigureGenerator
 import TestGenerator
 import Algorithms
+import Test
 
 # Configuration
 import parseConfig as config
@@ -56,7 +57,8 @@ def main():
         TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], programConfig["results"]["figure"], nameOfTest)
 
     elif(typeOfTest == "test"):
-        TestGenerator.run(graphConfig , programConfig, args)
+        graphDirectory = getFile(programConfig["graphs"], graphConfig["test"]["graphDirectory"]).replace("\\","/")
+        Test.runBatchDirectoryTest(graphDirectory, programConfig["results"]["test"], args)
 
 if __name__ == "__main__":
     main()

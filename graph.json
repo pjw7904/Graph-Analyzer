@@ -1,7 +1,7 @@
 {
-    "type": "single",
+    "type": "test",
     "choice": "graphml",
-    "name": "17recov02",
+    "name": "test",
     "seed": null,
 
     "single":
@@ -70,5 +70,10 @@
                 "startingkRegular": 2,
                 "endingkRegular": 5
             }
+    },
+
+    "test":
+    {
+        "graphDirectory": "test_node"
     }
 }
