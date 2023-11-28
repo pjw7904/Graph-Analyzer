@@ -35,20 +35,6 @@ def runTest(graph, sendQueue, treeValidator, algo):
 
     return
 
-    # Print the results
-'''    for node in sorted(graph.nodes):
-        print(graph.nodes[node]['algo'])
-
-    print("\n==============================")
-
-    if(algo == "rsta"):
-        for edge in graph.edges:
-            role1 = graph.nodes[edge[0]]['algo'].role[graph.nodes[edge[1]]['algo'].id]
-            role2 = graph.nodes[edge[1]]['algo'].role[graph.nodes[edge[0]]['algo'].id]
-            print(f"{graph.nodes[edge[0]]['algo'].id}, {graph.nodes[edge[1]]['algo'].id} ---> ({role1}, {role2})")
-            if(role1 == role2 or (role1 != "D" and role2 != "D")):
-                print("BAD")'''
-
 def propagation(sender: DistributedAlgorithm, receiver: DistributedAlgorithm):
     return receiver.processMessage(sender.messageToSend())
 
@@ -78,16 +64,14 @@ def runBatchDirectoryTest(graphDirectory, logDirectory, args):
         # Run tests with each algorithm
         for currentAlgo in ("mta", "rsta", "da"):
             args.algorithm = currentAlgo
-            currentGraph.graph[currentAlgo] = {} # Metrics dict
 
             # Set up topology with Algorithms
             Algorithms.runAlgorithmOnGraph(currentGraph, args)
 
+            # Write results in csv form
             csvwriter.writerow([testSet, os.path.basename(graphmlFile), currentAlgo, currentGraph.graph[currentAlgo]["time"]])
 
+    # Close the file
     csvFile.close()
     
     return
-
-
-#runBatchDirectoryTest("C:/Users/peter/Documents/research/mtp-analysis/graphs/graphml/test_node")

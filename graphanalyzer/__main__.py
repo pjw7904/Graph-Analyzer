@@ -51,7 +51,7 @@ def main():
 
         if(args.algorithm != "none"):
             # Run one of the algorithms for initial SPT convergence and potential further tests
-            Algorithms.runAlgorithmOnGraph(graph, args, programConfig["results"]["log"], nameOfTest)
+            Algorithms.runAlgorithmOnGraph(graph, args)
 
     elif(typeOfTest == "batch"):
         TestGenerator.runBatchTest(typeOfGraph, graphConfig["batch"][typeOfGraph], args, programConfig["results"]["log"], programConfig["results"]["figure"], nameOfTest)

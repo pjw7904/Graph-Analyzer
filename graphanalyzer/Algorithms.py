@@ -32,6 +32,9 @@ def runAlgorithmOnGraph(graph, args):
     # Additional graph validator for SPT algorithms
     treeValidator = TreeValidator(root)
 
+    # Dict to collect metrics, if desired
+    graph.graph[args.algorithm] = {}
+
     # Initalize a distributed algorithm for each vertex in the graph
     for vertex in sorted(graph.nodes):
         id = chr(65 + IDCount)
@@ -41,10 +44,10 @@ def runAlgorithmOnGraph(graph, args):
         data["tree"] = treeValidator
 
         if(vertex == root):
-            logging.warning(f"{vertex} (root) ID = {id}\n")
+            #logging.warning(f"{vertex} (root) ID = {id}\n")
             data["isRoot"] = True
         else:
-            logging.warning(f"{vertex} ID = {id}\n")
+            #logging.warning(f"{vertex} ID = {id}\n")
             data["isRoot"] = False
 
         # Meshed Tree Algorithm
