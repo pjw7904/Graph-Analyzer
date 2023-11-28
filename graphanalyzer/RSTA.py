@@ -1,5 +1,5 @@
 from DistributedAlgorithm import DistributedAlgorithm
-from queue import PriorityQueue
+import heapq
 from collections import namedtuple, defaultdict
 import copy
 
@@ -37,7 +37,7 @@ class RSTA(DistributedAlgorithm):
         self.role = defaultdict(lambda: UNDEFINED_ROLE)
 
         # To hold alternates
-        self.AVPQ = PriorityQueue()
+        self.AVPQ = []
         self.AVDist = defaultdict(lambda: UNDEFINED_COST)
 
     def processMessage(self, message) -> bool:
@@ -83,7 +83,7 @@ class RSTA(DistributedAlgorithm):
             if(self.root == self.rv):
                 self.neighbor = {}
                 self.role = defaultdict(lambda: UNDEFINED_ROLE)
-                self.AVPQ = PriorityQueue()
+                self.AVPQ = []
                 self.AVDist = {}
 
         elif(self.role[failedNeighbor] == ALTERNATE_ROLE):
@@ -108,7 +108,7 @@ class RSTA(DistributedAlgorithm):
 
     def setAlternate(self, altRV):
         self.role[altRV.VID] = ALTERNATE_ROLE
-        self.AVPQ.put(altRV)
+        heapq.heappush(self.AVPQ, altRV)
         self.AVDist[altRV.VID] = altRV.RPC
 
         return
@@ -122,7 +122,7 @@ class RSTA(DistributedAlgorithm):
         rootHasNotBeenChosen = True
 
         while(rootHasNotBeenChosen):
-            if(self.AVPQ.empty()):
+            if(not self.AVPQ):
                 #if(self.root.VID != self.id):
                 #    pass
                 self.rv = RSTAVector(float('inf'), self.id)
@@ -130,7 +130,7 @@ class RSTA(DistributedAlgorithm):
                 rootHasNotBeenChosen = False                    
 
             else:
-                newRoot = self.AVPQ.get(timeout=5)
+                newRoot = heapq.heappop(self.AVPQ)
 
                 if(self.role[newRoot.VID] == ALTERNATE_ROLE and newRoot.RPC == self.AVDist[newRoot.VID]): # D issue here
                     self.setRoot(newRoot)

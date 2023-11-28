@@ -1,5 +1,5 @@
 from DistributedAlgorithm import DistributedAlgorithm
-from queue import PriorityQueue
+import heapq
 import networkx as nx
 import copy
 
@@ -51,16 +51,16 @@ class LSA(DistributedAlgorithm):
         dist = {self.name: 0}
         parent = {}
 
-        unvisited = PriorityQueue()
-        unvisited.put((dist[self.name], self.name))
+        unvisited = []
+        heapq.heappush(unvisited, (dist[self.name], self.name))
 
         for node in self.graph:
             if node != self.name:
                 dist[node] = float('inf')
             parent[node] = None
 
-        while not unvisited.empty():
-            (k, u) = unvisited.get(timeout=5)
+        while unvisited:
+            (k, u) = heapq.heappop(unvisited)
             
             if(k == dist[u]):
                 for v in self.graph.neighbors(u):
@@ -69,7 +69,7 @@ class LSA(DistributedAlgorithm):
                     if(alt < dist[v]):
                         dist[v] = alt
                         parent[v] = u
-                        unvisited.put((dist[v], v))
+                        heapq.heappush(unvisited, (dist[v], v))
 
                         # validation and output, not part of algorithm
                         if(self.isRoot):
