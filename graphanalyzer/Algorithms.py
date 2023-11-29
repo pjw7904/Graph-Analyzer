@@ -67,7 +67,7 @@ def runAlgorithmOnGraph(graph, args):
 
         # Unknown algorithm
         else:
-            raise nx.NetworkXError("Algorithm type is not valid")
+            raise nx.NetworkXError(f"Algorithm type {args.algorithm} is not valid")
 
         if(IDCount == 25): # jump to lowercase Latin alphabet
             IDCount += 7
@@ -89,7 +89,10 @@ def runAlgorithmOnGraph(graph, args):
 
         edgeTuple = args.remove
 
-        Test.runFailureTest(graph, edgeTuple, treeValidator, args.algorithm, failedEdgeIDs=idEdge)
+        updatedAlgoName = f"{args.algorithm}_recovery"
+        graph.graph[updatedAlgoName] = {}
+
+        Test.runFailureTest(graph, edgeTuple, treeValidator, updatedAlgoName, failedEdgeIDs=idEdge)
 
     return
 
