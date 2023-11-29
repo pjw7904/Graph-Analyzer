@@ -23,8 +23,13 @@ class TreeValidator:
     def addParent(self, parent, child):
         # Determine who the child's previous parent is (or if they don't have one)
         previousParent = self.graph.nodes[child]['parent']
+        previousChildren = self.graph.nodes[child]['children']
 
         if(previousParent == parent):
+            return
+
+        if(parent in previousChildren):
+            self.swapRelationship(parent, child)
             return
 
         if(previousParent != None):
@@ -45,16 +50,27 @@ class TreeValidator:
         self.graph.nodes[parent]['children'].remove(child)
         self.graph.nodes[child]['parent'] = None
         self.graph.remove_edge(parent, child)
+
         return
 
     def addRelationship(self, parent, child):
         self.graph.nodes[parent]['children'].append(child)
         self.graph.nodes[child]['parent'] = parent
         self.graph.add_edge(parent, child)
+
+        return
+    
+    def swapRelationship(self, newParent, oldParent):
+        self.removeRelationship(oldParent, newParent)
+        self.addRelationship(newParent, oldParent)
+
         return
 
     def isTree(self):
         return nx.is_tree(self.graph)
+    
+    def getCycles(self):
+        return nx.cycle_basis(self.graph)
 
     def isParent(self, vertex, potentialParent):
         return self.graph.nodes[vertex]['parent'] == potentialParent

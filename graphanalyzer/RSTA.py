@@ -84,7 +84,7 @@ class RSTA(DistributedAlgorithm):
                 self.neighbor = {}
                 self.role = defaultdict(lambda: UNDEFINED_ROLE)
                 self.AVPQ = []
-                self.AVDist = {}
+                self.AVDist = defaultdict(lambda: UNDEFINED_COST)
 
         elif(self.role[failedNeighbor] == ALTERNATE_ROLE):
             self.AVDist[failedNeighbor] = BROKEN_COST
