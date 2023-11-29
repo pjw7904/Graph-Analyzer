@@ -121,6 +121,11 @@ class MTA(DistributedAlgorithm):
     
     def processFailure(self, failedEdge):
         failedEdge = failedEdge[0] + failedEdge[1]
+
+        if(self.isRoot):
+            failedChild = failedEdge[0] if failedEdge[0] != self.id else failedEdge[1]
+            self.tree.removeRelationship(self.id, failedChild) 
+
         self.removePaths(failedEdge)
 
         return
