@@ -60,5 +60,8 @@ def main():
         graphDirectory = getFile(programConfig["graphs"], graphConfig["test"]["graphDirectory"]).replace("\\","/")
         Test.runBatchDirectoryTest(graphDirectory, programConfig["results"]["test"], args)
 
+        # Update Test.treeInfoTest and uncomment if additional, custom information is desired:
+        #Test.treeInfoTest(graphDirectory, programConfig["results"]["test"], args)
+
 if __name__ == "__main__":
     main()

@@ -1,15 +1,18 @@
 from DistributedAlgorithm import DistributedAlgorithm
-from TreeAnalyzer import TreeValidator
 from timeit import default_timer as timer
 from os.path import join as getFile
+from networkx import diameter
 import glob
 import GraphGenerator
 import Algorithms
-import pandas as pd 
 import os
 import csv
+import itertools
 
 TOP_NODE = 0 # For popping the next node to send
+
+def propagation(sender: DistributedAlgorithm, receiver: DistributedAlgorithm):
+    return receiver.processMessage(sender.messageToSend())
 
 def runTest(graph, sendQueue, treeValidator, algo):
     # Initalize metrics
@@ -44,12 +47,9 @@ def runTest(graph, sendQueue, treeValidator, algo):
     graph.graph[algo]["receives"] = receiveCounter
     graph.graph[algo]["updates"] = hasUpdate
     graph.graph[algo]["time"] = (endTime - startTime)
-    graph.graph[algo]["tree"] = treeValidator.isTree()
+    graph.graph[algo]["tree"] = treeValidator
 
     return
-
-def propagation(sender: DistributedAlgorithm, receiver: DistributedAlgorithm):
-    return receiver.processMessage(sender.messageToSend())
 
 # Names = the vertex name, ID = the ID given to the vertex.
 def runFailureTest(graph, failedEdgeNames, treeValidator, algo, failedEdgeIDs=None):
@@ -74,8 +74,8 @@ def runBatchDirectoryTest(graphDirectory, logDirectory, args):
     csvRecoverwriter = csv.writer(csvRecoverFile)
 
     # Write header
-    csvInitwriter.writerow(("testSetName","graphName","algo","time","receives","updates","tree"))
-    csvRecoverwriter.writerow(("testSetName","graphName","algo","time","receives","updates","tree"))
+    csvInitwriter.writerow(("testSetName","graphName","algo","time","receives","updates"))
+    csvRecoverwriter.writerow(("testSetName","graphName","algo","time","receives","updates"))
 
     # Cycle through each saved graph in a given file
     for graphmlFile in glob.glob(graphDirectory + '/*.graphml'):
@@ -96,12 +96,11 @@ def runBatchDirectoryTest(graphDirectory, logDirectory, args):
             # Set up topology with Algorithms
             Algorithms.runAlgorithmOnGraph(currentGraph, args)
 
-            # Write results in csv form - testSetName,graphName,algo,time,receives,updates,tree
+            # Write results in csv form - testSetName,graphName,algo,time,receives,updates
             row = (testSet, os.path.basename(graphmlFile), 
                    currentAlgo, currentGraph.graph[currentAlgo]["time"],
                    currentGraph.graph[currentAlgo]["receives"], 
-                   currentGraph.graph[currentAlgo]["updates"],
-                   currentGraph.graph[currentAlgo]["tree"])
+                   currentGraph.graph[currentAlgo]["updates"])
             csvInitwriter.writerow(row)
 
             recoveryName = f"{args.algorithm}_recovery"
@@ -109,8 +108,7 @@ def runBatchDirectoryTest(graphDirectory, logDirectory, args):
             row = (testSet, os.path.basename(graphmlFile), 
                    currentAlgo, currentGraph.graph[recoveryName]["time"],
                    currentGraph.graph[recoveryName]["receives"], 
-                   currentGraph.graph[recoveryName]["updates"],
-                   currentGraph.graph[recoveryName]["tree"])
+                   currentGraph.graph[recoveryName]["updates"])
             csvRecoverwriter.writerow(row)
 
             # Add the edge back before the next algorithm starts its test
@@ -121,5 +119,33 @@ def runBatchDirectoryTest(graphDirectory, logDirectory, args):
     # Close the file
     csvInitFile.close()
     csvRecoverFile.close()
+    
+    return
+
+def treeInfoTest(graphDirectory, logDirectory, args):
+    # Create a log file for data collection
+    testSet = os.path.basename(graphDirectory)
+
+    # Cycle through each saved graph in a given file
+    for graphmlFile in glob.glob(graphDirectory + '/*.graphml'):
+        # Import the graph into a networkx graph
+        currentGraph = GraphGenerator.fromGraphml(graphmlFile)
+
+        trees = []
+
+        print(f"Testing on: {graphmlFile}")
+
+        # Run tests with each algorithm
+        for currentAlgo in ("mta", "rsta", "da"):
+            args.algorithm = currentAlgo
+
+            print(f"\tStarting test for: {currentAlgo}")
+
+            # Set up topology with Algorithms
+            Algorithms.runAlgorithmOnGraph(currentGraph, args)
+            
+            print(diameter(currentGraph.graph[currentAlgo]["tree"].graph))
+
+            print(f"\tEnding test for: {currentAlgo}\n")
     
     return
